@@ -174,6 +174,7 @@ int	batch_sched_delay = 3;
 uint32_t cluster_cpus = 0;
 time_t	control_time = 0;
 bool disable_remote_singleton = false;
+int max_depend_depth = 10;
 time_t	last_proc_req_start = 0;
 bool	ping_nodes_now = false;
 pthread_cond_t purge_thread_cond = PTHREAD_COND_INITIALIZER;
@@ -308,6 +309,7 @@ int main(int argc, char **argv)
 
 	update_logging();
 
+	memset(&slurmctld_diag_stats, 0, sizeof(slurmctld_diag_stats));
 	/*
 	 * Calculate speed of gettimeofday() for sdiag.
 	 * Large delays indicate the Linux vDSO is not in use, which
