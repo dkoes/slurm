@@ -11472,6 +11472,9 @@ static void _hold_job(job_record_t *job_ptr, uid_t uid)
 
 static void _release_job_rec(job_record_t *job_ptr, uid_t uid)
 {
+	time_t now = time(NULL);
+	if (job_ptr->details && (job_ptr->details->begin_time < now))
+		job_ptr->details->begin_time = 0;
 	job_ptr->direct_set_prio = 0;
 	set_job_prio(job_ptr);
 	job_ptr->state_reason = WAIT_NO_REASON;
@@ -13563,6 +13566,7 @@ static int _update_job(job_record_t *job_ptr, job_desc_msg_t *job_specs,
 						    time_str, sizeof(time_str));
 				sched_info("%s: setting begin to %s for %pJ",
 					   __func__, time_str, job_ptr);
+				acct_policy_remove_accrue_time(job_ptr, false);
 			} else
 				sched_debug("%s: new begin time identical to old begin time %pJ",
 					    __func__, job_ptr);

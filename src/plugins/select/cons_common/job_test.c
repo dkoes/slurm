@@ -530,7 +530,7 @@ static avail_res_t **_select_nodes(job_record_t *job_ptr, uint32_t min_nodes,
 					FREE_NULL_BITMAP(avail_core[n]);
 			}
 		} else {
-			uint32_t i_first, i_last, n, start;
+			int i_first, i_last, n, start;
 			i_first = bit_ffs(node_bitmap);
 			if (i_first != -1)
 				i_last = bit_fls(node_bitmap);
@@ -547,7 +547,7 @@ static avail_res_t **_select_nodes(job_record_t *job_ptr, uint32_t min_nodes,
 						(cr_get_coremap_offset(n)) - 1);
 				start = cr_get_coremap_offset(n + 1);
 			}
-			if (cr_get_coremap_offset(n) != start)
+			if ((n >= 0) && (cr_get_coremap_offset(n) != start))
 				bit_nclear(*avail_core, start,
 					   cr_get_coremap_offset(n) - 1);
 		}

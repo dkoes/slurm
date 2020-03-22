@@ -1,4 +1,4 @@
-.TH sbatch "1" "Slurm Commands" "January 2020" "Slurm Commands"
+.TH sbatch "1" "Slurm Commands" "February 2020" "Slurm Commands"
 
 .SH "NAME"
 sbatch \- Submit a batch script to Slurm.
@@ -45,15 +45,16 @@ sbatch will return 0 on success or error code on failure.
 
 The batch script is resolved in the following order:
 .br
-.IP 1. 3
-If script starts with ".", then path is constructed as:
+
+1. If script starts with ".", then path is constructed as:
 current working directory / script
-.IP 2.
-If script starts with a "/", then path is considered absolute.
-.IP 3.
-If script is in current working directory.
-.IP 4.
-If script can be resolved through PATH. See \fBpath_resolution\fR(7).
+.br
+2. If script starts with a "/", then path is considered absolute.
+.br
+3. If script is in current working directory.
+.br
+4. If script can be resolved through PATH. See \fBpath_resolution\fR(7).
+.br
 .P
 Current working directory is the calling process working directory unless the
 \fB\-\-chdir\fR argument is passed, which will override the current working
@@ -189,7 +190,7 @@ the batch script will execute on the first node of the job allocation.
 \fB\-\-bb\fR=<\fIspec\fR>
 Burst buffer specification. The form of the specification is system dependent.
 Note the burst buffer may not be accessible from a login node, but require
-that salloc spawn a shell on one of it's allocated compute nodes. See the
+that salloc spawn a shell on one of its allocated compute nodes. See the
 description of SallocDefaultCommand in the slurm.conf man page for more
 information about how to spawn a remote shell.
 
@@ -498,9 +499,10 @@ has a different termination state in a subsequent execution.
 .RS
 .TP
 \fBafter:job_id[[+time][:jobid[+time]...]]\fR
-After the specified jobs start and 'time' in minutes from job start happens this
+After the specified jobs start or are cancelled and 'time' in minutes from job
+start or cancellation happens, this
 job can begin execution. If no 'time' is given then then there is no delay after
-start.
+start or cancellation.
 .TP
 \fBafterany:job_id[:jobid...]\fR
 This job can begin execution after the specified jobs have terminated.
@@ -699,9 +701,8 @@ Bind by setting GPU masks on tasks (or ranks) as specified where <list> is
 a node and identical mapping is applied to the tasks on every node (i.e. the
 lowest task ID on each node is mapped to the first mask specified in the list,
 etc.). GPU masks are always interpreted as hexadecimal values but can be
-preceded with an optional '0x'. Not supported unless the entire node is
-allocated to the job. To simplify support for large task counts, the lists
-may follow a map with an asterisk and repetition count.
+preceded with an optional '0x'. To simplify support for large task counts, the
+lists may follow a map with an asterisk and repetition count.
 For example "mask_gpu:0x0f*4,0xf0*4".
 Not supported unless the entire node is allocated to the job.
 .RE
@@ -769,11 +770,12 @@ See also the \fB\-\-gpus\fR, \fB\-\-gpus\-per\-node\fR and
 Specify the number of GPUs required for the job on each task to be spawned
 in the job's resource allocation.
 An optional GPU type specification can be supplied.
-This option requires the specification of a task count (e.g. \-n or \-\-ntasks
-options). For example "\-\-gpus\-per\-task=volta:1". Multiple options can be
+For example "\-\-gpus\-per\-task=volta:1". Multiple options can be
 requested in a comma separated list, for example:
 "\-\-gpus\-per\-task=volta:3,kepler:1". See also the \fB\-\-gpus\fR,
 \fB\-\-gpus\-per\-socket\fR and \fB\-\-gpus\-per\-node\fR options.
+This option requires an explicit task count, e.g. -n, --ntasks or "--gpus=X
+--gpus-per-task=Y" rather than an ambiguous range of nodes with -N, --nodes.
 .br
 NOTE: This option will not have any impact on GPU binding, specifically
 it won't limit the number of devices set for CUDA_VISIBLE_DEVICES.
@@ -857,7 +859,7 @@ show this help message
 
 .TP
 \fB\-\-ignore\-pbs\fR
-Ignore any "#PBS" options specified in the batch script.
+Ignore all "#PBS" and "#BSUB" options specified in the batch script.
 
 .TP
 \fB\-i\fR, \fB\-\-input\fR=<\fIfilename pattern\fR>
@@ -1127,7 +1129,7 @@ be performed at the level of nodes, where the definition of "nodes"
 may differ from system to system.
 By default no memory binding is performed; any task using any CPU can use
 any memory. This option is typically used to ensure that each task is bound to
-the memory closest to it's assigned CPU. \fBThe use of any type other than
+the memory closest to its assigned CPU. \fBThe use of any type other than
 "none" or "local" is not recommended.\fR
 If you want greater control, try running a simple test code with the
 options "\-\-cpu\-bind=verbose,none \-\-mem\-bind=verbose,none" to determine
@@ -1599,7 +1601,7 @@ Request a quality of service for the job.  QOS values can be defined
 for each user/cluster/account association in the Slurm database.
 Users will be limited to their association's defined set of qos's when
 the Slurm configuration parameter, AccountingStorageEnforce, includes
-"qos" in it's definition.
+"qos" in its definition.
 
 .TP
 \fB\-Q\fR, \fB\-\-quiet\fR
@@ -1739,7 +1741,7 @@ plugin is enabled.
 .TP
 \fB\-\-time\-min\fR=<\fItime\fR>
 Set a minimum time limit on the job allocation.
-If specified, the job may have it's \fB\-\-time\fR limit lowered to a value
+If specified, the job may have its \fB\-\-time\fR limit lowered to a value
 no lower than \fB\-\-time\-min\fR if doing so permits the job to begin
 execution earlier than otherwise possible.
 The job's time limit will not be changed after the job is allocated resources.

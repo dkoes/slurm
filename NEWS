@@ -1,6 +1,26 @@
 This file describes changes in recent versions of Slurm. It primarily
 documents those changes that are of interest to users and administrators.
 
+* Changes in Slurm 20.02.1
+==========================
+ -- Improve job state reason for jobs hitting partition_job_depth.
+ -- Speed up testing of singleton dependencies.
+ -- Fix negative loop bound in cons_tres.
+ -- srun - capture the MPI plugin return code from mpi_hook_client_fini() and
+    use as final return code for step failure.
+ -- Fix segfault in cli_filter/lua.
+ -- Fix --gpu-bind=map_gpu reusability if tasks > elements.
+ -- Make sure config_flags on a gres are sent to the slurmctld on node
+    registration.
+ -- Prolog/Epilog - Fix missing GPU information.
+ -- Fix segfault when using config parser for expanded lines.
+ -- Fix bit overlap test function.
+ -- Don't accrue time if job begin time is in the future.
+ -- Remove accrue time when updating a job start/eligible time to the future.
+ -- Fix regression in 20.02.0 that broke --depend=expand.
+ -- Reset begin time on job release if it's not in the future.
+ -- Fix for recovering burst buffers when using high-availability.
+
 * Changes in Slurm 20.02.0
 ==========================
  -- Fix minor memory leak in slurmd on reconfig.

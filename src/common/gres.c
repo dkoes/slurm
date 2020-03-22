@@ -1638,6 +1638,10 @@ static void _merge_gres2(List gres_conf_list, List new_list, uint64_t count,
 		gres_conf->config_flags = GRES_CONF_HAS_TYPE;
 		gres_conf->type_name = xstrdup(type_name);
 	}
+
+	if (gres_context->config_flags & GRES_CONF_COUNT_ONLY)
+		gres_conf->config_flags |= GRES_CONF_COUNT_ONLY;
+
 	list_append(new_list, gres_conf);
 }
 
@@ -1986,6 +1990,20 @@ extern int gres_plugin_node_config_unpack(Buf buffer, char *node_name)
 				config_flags |= GRES_CONF_HAS_TYPE;
 			}
 			gres_context[j].config_flags |= config_flags;
+
+			/*
+			 * On the slurmctld we need to load the plugins to
+			 * correctly set env vars.  We want to call this only
+			 * after we have the config_flags so we can tell if we
+			 * are CountOnly or not.
+			 */
+			if (!(gres_context[j].config_flags &
+			      GRES_CONF_LOADED)) {
+				(void)_load_gres_plugin(&gres_context[j]);
+				gres_context[j].config_flags |=
+					GRES_CONF_LOADED;
+			}
+
 			break;
 	 	}
 		if (j >= gres_context_cnt) {
@@ -12717,26 +12735,32 @@ static bitstr_t *_get_gres_map(char *map_gres, int local_proc_id)
 		return NULL;
 
 	tmp = xstrdup(map_gres);
-	tok = strtok_r(tmp, ",", &save_ptr);
-	while (tok) {
-		if ((mult = strchr(tok, '*'))) {
-			mult[0] = '\0';
-			task_mult = atoi(mult + 1);
-		} else
-			task_mult = 1;
-		if ((local_proc_id >= task_offset) &&
-		    (local_proc_id <= (task_offset + task_mult - 1))) {
-			map_value = strtol(tok, NULL, 0);
-			if ((map_value < 0) || (map_value >= MAX_GRES_BITMAP))
-				break;	/* Bad value */
-			usable_gres = bit_alloc(MAX_GRES_BITMAP);
-			bit_set(usable_gres, map_value);
-			break;	/* All done */
-		} else {
-			task_offset += task_mult;
+	while (usable_gres == NULL) {
+		tok = strtok_r(tmp, ",", &save_ptr);
+		while (tok) {
+			if ((mult = strchr(tok, '*'))) {
+				mult[0] = '\0';
+				task_mult = atoi(mult + 1);
+			} else
+				task_mult = 1;
+			if (task_mult == 0)
+				task_mult = 1;
+			if ((local_proc_id >= task_offset) &&
+			    (local_proc_id <= (task_offset + task_mult - 1))) {
+				map_value = strtol(tok, NULL, 0);
+				if ((map_value < 0) ||
+				    (map_value >= MAX_GRES_BITMAP))
+					goto end;	/* Bad value */
+				usable_gres = bit_alloc(MAX_GRES_BITMAP);
+				bit_set(usable_gres, map_value);
+				break;	/* All done */
+			} else {
+				task_offset += task_mult;
+			}
+			tok = strtok_r(NULL, ",", &save_ptr);
 		}
-		tok = strtok_r(NULL, ",", &save_ptr);
 	}
+end:
 	xfree(tmp);
 
 	return usable_gres;
