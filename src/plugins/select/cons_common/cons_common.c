@@ -94,6 +94,7 @@ uint16_t priority_flags       = 0;
 int      select_node_cnt      = 0;
 bool     spec_cores_first     = false;
 bool     topo_optional        = false;
+uint64_t select_debug_flags   = 0;
 
 /* Global variables */
 
