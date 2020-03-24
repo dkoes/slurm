@@ -87,7 +87,6 @@ extern pid_t getpgid(pid_t pid);
 char **command_argv;
 int command_argc;
 pid_t command_pid = -1;
-uint64_t debug_flags = 0;
 char *work_dir = NULL;
 static int is_interactive;
 
@@ -153,7 +152,7 @@ static void _reset_input_mode (void)
 
 static int _set_cluster_name(void *x, void *arg)
 {	job_desc_msg_t *desc = (job_desc_msg_t *) x;
-	desc->origin_cluster = xstrdup(slurmctld_conf.cluster_name);
+	desc->origin_cluster = xstrdup(slurm_conf.cluster_name);
 	return 0;
 }
 
@@ -182,7 +181,6 @@ int main(int argc, char **argv)
 	ListIterator iter_req, iter_resp;
 
 	slurm_conf_init(NULL);
-	debug_flags = slurm_get_debug_flags();
 	log_init(xbasename(argv[0]), logopt, 0, NULL);
 	_set_exit_code();
 
@@ -359,7 +357,7 @@ int main(int argc, char **argv)
 	if (job_req_list)
 		(void) list_for_each(job_req_list, _set_cluster_name, NULL);
 	else
-		desc->origin_cluster = xstrdup(slurmctld_conf.cluster_name);
+		desc->origin_cluster = xstrdup(slurm_conf.cluster_name);
 
 	callbacks.ping = _ping_handler;
 	callbacks.timeout = _timeout_handler;
@@ -448,11 +446,8 @@ int main(int argc, char **argv)
 				my_job_id = alloc->job_id;
 				info("Granted job allocation %u", my_job_id);
 			}
-			if (debug_flags & DEBUG_FLAG_HETJOB) {
-				info("Hetjob ID %u+%u (%u) on nodes %s",
-				     my_job_id, i, alloc->job_id,
-				     alloc->node_list);
-			}
+			log_flag(HETJOB, "Hetjob ID %u+%u (%u) on nodes %s",
+			         my_job_id, i, alloc->job_id, alloc->node_list);
 			i++;
 			if (_proc_alloc(alloc) != SLURM_SUCCESS) {
 				list_iterator_destroy(iter_resp);
@@ -483,6 +478,8 @@ int main(int argc, char **argv)
 	if (saopt.no_shell)
 		exit(0);
 	if (allocation_interrupted) {
+		if (alloc)
+			my_job_id = alloc->job_id;
 		/* salloc process received a signal after
 		 * slurm_allocate_resources_blocking returned with the
 		 * allocation, but before the new signal handlers were
@@ -1072,7 +1069,7 @@ static void _salloc_cli_filter_post_submit(uint32_t jobid, uint32_t stepid)
 	if (_cli_filter_post_submit_run)
 		return;
 	for (idx = 0; idx < het_job_limit; idx++)
-		cli_filter_plugin_post_submit(idx, jobid, stepid);
+		cli_filter_g_post_submit(idx, jobid, stepid);
 
 	_cli_filter_post_submit_run = true;
 }

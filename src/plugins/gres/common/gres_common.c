@@ -68,14 +68,12 @@ extern int common_node_config_load(List gres_conf_list,
 	hostlist_t hl;
 	char *root_path, *one_name;
 	gres_device_t *gres_device;
-	uint64_t debug_flags;
 	List names_list;
 	int max_dev_num = -1;
 
 	xassert(gres_conf_list);
 	xassert(gres_devices);
 
-	debug_flags = slurm_get_debug_flags();
 	names_list = list_create(_free_name_list);
 	itr = list_iterator_create(gres_conf_list);
 	while ((gres_slurmd_conf = list_next(itr))) {
@@ -142,11 +140,9 @@ extern int common_node_config_load(List gres_conf_list,
 		while ((gres_device = list_next(itr))) {
 			if (gres_device->dev_num == -1)
 				gres_device->dev_num = ++max_dev_num;
-			if (debug_flags & DEBUG_FLAG_GRES) {
-				debug("%s device number %d(%s):%s",
-				     gres_name, gres_device->dev_num,
-				     gres_device->path, gres_device->major);
-			}
+			log_flag(GRES, "%s device number %d(%s):%s",
+				 gres_name, gres_device->dev_num,
+				 gres_device->path, gres_device->major);
 		}
 		list_iterator_destroy(itr);
 	}
@@ -332,62 +328,42 @@ extern void common_gres_set_env(List gres_devices, char ***env_ptr,
 	}
 }
 
-extern void common_send_stepd(int fd, List gres_devices)
+extern void common_send_stepd(Buf buffer, List gres_devices)
 {
-	int i;
-	int cnt = 0;
+	uint32_t cnt = 0;
 	gres_device_t *gres_device;
 	ListIterator itr;
 
 	if (gres_devices)
 		cnt = list_count(gres_devices);
-	safe_write(fd, &cnt, sizeof(int));
+	pack32(cnt, buffer);
 
 	if (!cnt)
 		return;
 
 	itr = list_iterator_create(gres_devices);
 	while ((gres_device = list_next(itr))) {
-		safe_write(fd, &gres_device->dev_num, sizeof(int));
-		if (gres_device->major) {
-			i = strlen(gres_device->major);
-			safe_write(fd, &i, sizeof(int));
-			safe_write(fd, gres_device->major, i);
-		} else {
-			i = 0;
-			safe_write(fd, &i, sizeof(int));
-		}
-
-		if (gres_device->path) {
-			i = strlen(gres_device->path);
-			safe_write(fd, &i, sizeof(int));
-			safe_write(fd, gres_device->path, i);
-		} else {
-			i = 0;
-			safe_write(fd, &i, sizeof(int));
-		}
+		/* DON'T PACK gres_device->alloc */
+		pack32(gres_device->dev_num, buffer);
+		packstr(gres_device->major, buffer);
+		packstr(gres_device->path, buffer);
 	}
 	list_iterator_destroy(itr);
 
 	return;
-
-rwfail:
-	error("%s: failed", __func__);
-	return;
 }
 
-extern void common_recv_stepd(int fd, List *gres_devices)
+extern void common_recv_stepd(Buf buffer, List *gres_devices)
 {
-	int i, cnt, len;
-	gres_device_t *gres_device;
+	uint32_t i, cnt;
+	uint32_t uint32_tmp = 0;
+	gres_device_t *gres_device = NULL;
 
 	xassert(gres_devices);
 
-	safe_read(fd, &cnt, sizeof(int));
-	if (*gres_devices) {
-		list_destroy(*gres_devices);
-		*gres_devices = NULL;
-	}
+	safe_unpack32(&cnt, buffer);
+	FREE_NULL_LIST(*gres_devices);
+
 	if (!cnt)
 		return;
 	*gres_devices = list_create(destroy_gres_device);
@@ -398,26 +374,22 @@ extern void common_recv_stepd(int fd, List *gres_devices)
 		 * Since we are pulling from a list we need to append here
 		 * instead of push.
 		 */
+		safe_unpack32(&uint32_tmp, buffer);
+		gres_device->dev_num = uint32_tmp;
+		safe_unpackstr_xmalloc(&gres_device->major,
+				       &uint32_tmp, buffer);
+		safe_unpackstr_xmalloc(&gres_device->path,
+				       &uint32_tmp, buffer);
 		list_append(*gres_devices, gres_device);
-		safe_read(fd, &gres_device->dev_num, sizeof(int));
-		safe_read(fd, &len, sizeof(int));
-		if (len) {
-			gres_device->major = xmalloc(len + 1);
-			safe_read(fd, gres_device->major, len);
-		}
-		safe_read(fd, &len, sizeof(int));
-		if (len) {
-			gres_device->path = xmalloc(len + 1);
-			safe_read(fd, gres_device->path, len);
-		}
 		/* info("adding %d %s %s", gres_device->dev_num, */
 		/*      gres_device->major, gres_device->path); */
 	}
 
 	return;
 
-rwfail:
+unpack_error:
 	error("%s: failed", __func__);
+	destroy_gres_device(gres_device);
 	return;
 }
 

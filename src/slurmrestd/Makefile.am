@@ -5,6 +5,8 @@ CLEANFILES = core.* *.bino
 
 REF = usage.txt openapi.json
 
+EXTRA_DIST = LICENSE-openapi.json
+
 SRCS = \
 	conmgr.h conmgr.c \
 	http.c http.h \
@@ -19,6 +21,7 @@ SRCS = \
 	xjson.h xjson.c \
 	xyaml.h xyaml.c
 
+if WITH_SLURMRESTD
 AM_CPPFLAGS = -I$(top_srcdir) $(JSON_CPPFLAGS)
 BIN_REF = $(REF:.txt=.bino)
 BIN_REF2 = $(BIN_REF:.json=.bino)
@@ -49,7 +52,6 @@ libslurmrest_ref.lo: $(BIN_REF2)
 
 # making a .la
 noinst_LTLIBRARIES = libslurmrest_ref.la
-
 slurmrestd_SOURCES = $(SRCS)
 convenience_libs = $(LIB_SLURM) $(DL_LIBS)
 slurmrestd_DEPENDENCIES = $(LIB_SLURM_BUILD) libslurmrest_ref.la
@@ -60,7 +62,9 @@ slurmrestd_LDADD = \
 	$(YAML_LDFLAGS) $(JSON_LDFLAGS) \
 	libslurmrest_ref.la \
 	ops/libslurmrest_ops.la
-
+else
+EXTRA_slurmrestd_SOURCES = $(SRCS)
+endif
 force:
 $(convenience_libs) : force
 	@cd `dirname $@` && $(MAKE) `basename $@`

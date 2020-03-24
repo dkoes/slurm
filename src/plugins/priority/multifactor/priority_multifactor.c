@@ -84,7 +84,7 @@ extern void *acct_db_conn  __attribute__((weak_import));
 extern uint32_t cluster_cpus __attribute__((weak_import));
 extern List job_list  __attribute__((weak_import));
 extern time_t last_job_update __attribute__((weak_import));
-extern slurm_ctl_conf_t slurmctld_conf __attribute__((weak_import));
+extern slurm_conf_t slurm_conf __attribute__((weak_import));
 extern int slurmctld_tres_cnt __attribute__((weak_import));
 extern uint16_t accounting_enforce __attribute__((weak_import));
 #else
@@ -92,7 +92,7 @@ void *acct_db_conn = NULL;
 uint32_t cluster_cpus = NO_VAL;
 List job_list = NULL;
 time_t last_job_update = (time_t) 0;
-slurm_ctl_conf_t slurmctld_conf;
+slurm_conf_t slurm_conf;
 int slurmctld_tres_cnt = 0;
 uint16_t accounting_enforce = 0;
 #endif
@@ -152,7 +152,6 @@ static time_t g_last_ran = 0; /* when the last poll ran */
 static double decay_factor = 1; /* The decay factor when decaying time. */
 
 /* variables defined in priority_multifactor.h */
-bool priority_debug = 0;
 
 static void _priority_p_set_assoc_usage_debug(slurmdb_assoc_rec_t *assoc);
 static void _set_assoc_usage_efctv(slurmdb_assoc_rec_t *assoc);
@@ -271,7 +270,7 @@ static void _read_last_decay_ran(time_t *last_ran, time_t *last_reset)
 	(*last_reset) = 0;
 
 	/* read the file */
-	state_file = xstrdup(slurmctld_conf.state_save_location);
+	state_file = xstrdup(slurm_conf.state_save_location);
 	xstrcat(state_file, "/priority_last_decay_ran");
 	lock_state_files();
 
@@ -287,8 +286,7 @@ static void _read_last_decay_ran(time_t *last_ran, time_t *last_reset)
 	safe_unpack_time(last_ran, buffer);
 	safe_unpack_time(last_reset, buffer);
 	free_buf(buffer);
-	if (priority_debug)
-		info("Last ran decay on jobs at %ld", (long)*last_ran);
+	log_flag(PRIO, "Last ran decay on jobs at %ld", (long) *last_ran);
 
 	return;
 
@@ -310,7 +308,7 @@ static int _write_last_decay_ran(time_t last_ran, time_t last_reset)
 	char *old_file, *new_file, *state_file;
 	Buf buffer;
 
-	if (!xstrcmp(slurmctld_conf.state_save_location, "/dev/null")) {
+	if (!xstrcmp(slurm_conf.state_save_location, "/dev/null")) {
 		error("Can not save priority state information, "
 		      "StateSaveLocation is /dev/null");
 		return error_code;
@@ -321,11 +319,11 @@ static int _write_last_decay_ran(time_t last_ran, time_t last_reset)
 	pack_time(last_reset, buffer);
 
 	/* read the file */
-	old_file = xstrdup(slurmctld_conf.state_save_location);
+	old_file = xstrdup(slurm_conf.state_save_location);
 	xstrcat(old_file, "/priority_last_decay_ran.old");
-	state_file = xstrdup(slurmctld_conf.state_save_location);
+	state_file = xstrdup(slurm_conf.state_save_location);
 	xstrcat(state_file, "/priority_last_decay_ran");
-	new_file = xstrdup(slurmctld_conf.state_save_location);
+	new_file = xstrdup(slurm_conf.state_save_location);
 	xstrcat(new_file, "/priority_last_decay_ran.new");
 
 	lock_state_files();
@@ -445,22 +443,17 @@ static double _get_fairshare_priority(job_record_t *job_ptr)
 	/* Priority is 0 -> 1 */
 	if (flags & PRIORITY_FLAGS_FAIR_TREE) {
 		priority_fs = job_assoc->usage->fs_factor;
-		if (priority_debug) {
-			info("Fairshare priority of job %u for user %s in acct %s is %f",
-			     job_ptr->job_id, job_assoc->user, job_assoc->acct,
-			     priority_fs);
-		}
+		log_flag(PRIO, "Fairshare priority of job %u for user %s in acct %s is %f",
+			 job_ptr->job_id, job_assoc->user, job_assoc->acct,
+			 priority_fs);
 	} else {
 		priority_fs = priority_p_calc_fs_factor(
 			fs_assoc->usage->usage_efctv,
 			(long double)fs_assoc->usage->shares_norm);
-		if (priority_debug) {
-			info("Fairshare priority of job %u for user %s in acct"
-			     " %s is 2**(-%Lf/%f) = %f",
-			     job_ptr->job_id, job_assoc->user, job_assoc->acct,
-			     fs_assoc->usage->usage_efctv,
-			     fs_assoc->usage->shares_norm, priority_fs);
-		}
+		log_flag(PRIO, "Fairshare priority of job %u for user %s in acct %s is 2**(-%Lf/%f) = %f",
+			 job_ptr->job_id, job_assoc->user, job_assoc->acct,
+			 fs_assoc->usage->usage_efctv,
+			 fs_assoc->usage->shares_norm, priority_fs);
 	}
 	assoc_mgr_unlock(&locks);
 
@@ -547,7 +540,7 @@ static uint32_t _get_priority_internal(time_t start_time,
 
 	set_priority_factors(start_time, job_ptr);
 
-	if (priority_debug) {
+	if (slurm_conf.debug_flags & DEBUG_FLAG_PRIO) {
 		memcpy(&pre_factors, job_ptr->prio_factors,
 		       sizeof(priority_factors_object_t));
 		if (job_ptr->prio_factors->priority_tres) {
@@ -659,21 +652,20 @@ static uint32_t _get_priority_internal(time_t start_time,
 				job_ptr->priority_array[i] =
 					(uint32_t) priority_part;
 			}
-			if (priority_debug) {
+			if (slurm_conf.debug_flags & DEBUG_FLAG_PRIO) {
 				xstrfmtcat(multi_part_str, multi_part_str ?
 					   ", %s=%u" : "%s=%u", part_ptr->name,
 					   job_ptr->priority_array[i]);
 			}
 			i++;
 		}
-		if (priority_debug && multi_part_str)
-			info("%pJ multi-partition priorities: %s",
-			     job_ptr, multi_part_str);
+		log_flag(PRIO, "%pJ multi-partition priorities: %s",
+			 job_ptr, multi_part_str);
 		xfree(multi_part_str);
 		list_iterator_destroy(part_iterator);
 	}
 
-	if (priority_debug) {
+	if (slurm_conf.debug_flags & DEBUG_FLAG_PRIO) {
 		int i;
 		double *post_tres_factors =
 			job_ptr->prio_factors->priority_tres;
@@ -828,17 +820,10 @@ static void _handle_qos_tres_run_secs(long double *tres_run_decay,
 			qos->usage->grp_used_tres_run_secs[i] -=
 				tres_run_delta[i];
 
-		if (priority_debug) {
-			info("_handle_qos_tres_run_secs: job %u: "
-			     "Removed %"PRIu64" unused seconds "
-			     "from QOS %s TRES %s "
-			     "grp_used_tres_run_secs = %"PRIu64,
-			     job_id,
-			     tres_run_delta[i],
-			     qos->name,
-			     assoc_mgr_tres_name_array[i],
-			     qos->usage->grp_used_tres_run_secs[i]);
-		}
+		log_flag(PRIO, "%s: job %u: Removed %"PRIu64" unused seconds from QOS %s TRES %s grp_used_tres_run_secs = %"PRIu64,
+			 __func__, job_id, tres_run_delta[i], qos->name,
+			 assoc_mgr_tres_name_array[i],
+			 qos->usage->grp_used_tres_run_secs[i]);
 	}
 }
 
@@ -874,17 +859,10 @@ static void _handle_assoc_tres_run_secs(long double *tres_run_decay,
 			assoc->usage->grp_used_tres_run_secs[i] -=
 				tres_run_delta[i];
 
-		if (priority_debug) {
-			info("_handle_assoc_tres_run_secs: job %u: "
-			     "Removed %"PRIu64" unused seconds "
-			     "from assoc %d TRES %s "
-			     "grp_used_tres_run_secs = %"PRIu64,
-			     job_id,
-			     tres_run_delta[i],
-			     assoc->id,
-			     assoc_mgr_tres_name_array[i],
-			     assoc->usage->grp_used_tres_run_secs[i]);
-		}
+		log_flag(PRIO, "%s: job %u: Removed %"PRIu64" unused seconds from assoc %d TRES %s grp_used_tres_run_secs = %"PRIu64,
+			 __func__, job_id, tres_run_delta[i], assoc->id,
+			 assoc_mgr_tres_name_array[i],
+			 assoc->usage->grp_used_tres_run_secs[i]);
 	}
 }
 
@@ -925,8 +903,7 @@ static void _init_grp_used_tres_run_secs(time_t last_ran)
 	uint64_t tres_run_delta[slurmctld_tres_cnt];
 	int i;
 
-	if (priority_debug)
-		info("Initializing grp_used_tres_run_secs");
+	log_flag(PRIO, "Initializing grp_used_tres_run_secs");
 
 	if (!(enforce & ACCOUNTING_ENFORCE_LIMITS))
 		return;
@@ -939,8 +916,7 @@ static void _init_grp_used_tres_run_secs(time_t last_ran)
 	assoc_mgr_lock(&locks);
 	while ((job_ptr = list_next(itr))) {
 		double usage_factor = 1.0;
-		if (priority_debug)
-			debug2("job: %u", job_ptr->job_id);
+		log_flag(PRIO, "job: %u", job_ptr->job_id);
 
 		/* If end_time_exp is NO_VAL we have already ran the end for
 		 * this job.  We don't want to do it again, so just exit.
@@ -1059,7 +1035,7 @@ static int _apply_new_usage(job_record_t *job_ptr, time_t start_period,
 	if (adjust_for_end)
 		job_ptr->end_time_exp = (time_t)NO_VAL;
 
-	if (priority_debug) {
+	if (slurm_conf.debug_flags & DEBUG_FLAG_PRIO) {
 		info("job %u ran for %g seconds with TRES counts of",
 		     job_ptr->job_id, run_delta);
 		if (job_ptr->tres_alloc_cnt) {
@@ -1170,14 +1146,10 @@ static int _apply_new_usage(job_record_t *job_ptr, time_t start_period,
 	while (assoc) {
 		assoc->usage->grp_used_wall += run_decay;
 		assoc->usage->usage_raw += (long double)real_decay;
-		if (priority_debug)
-			info("Adding %f new usage to assoc %u (%s/%s/%s) "
-			     "raw usage is now %Lf.  Group wall "
-			     "added %f making it %f.",
-			     real_decay, assoc->id, assoc->acct,
-			     assoc->user, assoc->partition,
-			     assoc->usage->usage_raw, run_decay,
-			     assoc->usage->grp_used_wall);
+		log_flag(PRIO, "Adding %f new usage to assoc %u (%s/%s/%s) raw usage is now %Lf. Group wall added %f making it %f.",
+			 real_decay, assoc->id, assoc->acct, assoc->user,
+			 assoc->partition, assoc->usage->usage_raw, run_decay,
+			 assoc->usage->grp_used_wall);
 		_handle_assoc_tres_run_secs(tres_run_decay, tres_run_delta,
 					    job_ptr->job_id, assoc);
 
@@ -1355,10 +1327,8 @@ static void *_decay_thread(void *no_data)
 		if (real_decay < DBL_MIN)
 			real_decay = DBL_MIN;
 
-		if (priority_debug)
-			info("Decay factor over %g seconds goes "
-			     "from %.15f -> %.15f",
-			     run_delta, decay_factor, real_decay);
+		log_flag(PRIO, "Decay factor over %g seconds goes from %.15f -> %.15f",
+			 run_delta, decay_factor, real_decay);
 
 		/* first apply decay to used time */
 		if (_apply_decay(real_decay) != SLURM_SUCCESS) {
@@ -1541,10 +1511,6 @@ static void _filter_job(job_record_t *job_ptr,
 static void _internal_setup(void)
 {
 	char *tres_weights_str;
-	if (slurm_get_debug_flags() & DEBUG_FLAG_PRIO)
-		priority_debug = 1;
-	else
-		priority_debug = 0;
 
 	favor_small = slurm_get_priority_favor_small();
 	damp_factor = (long double)slurm_get_fs_dampening_factor();
@@ -1565,18 +1531,16 @@ static void _internal_setup(void)
 	xfree(tres_weights_str);
 	flags = slurm_get_priority_flags();
 
-	if (priority_debug) {
-		info("priority: Damp Factor is %u", damp_factor);
-		info("priority: AccountingStorageEnforce is %u", enforce);
-		info("priority: Max Age is %u", max_age);
-		info("priority: Weight Age is %u", weight_age);
-		info("priority: Weight Assoc is %u", weight_assoc);
-		info("priority: Weight Fairshare is %u", weight_fs);
-		info("priority: Weight JobSize is %u", weight_js);
-		info("priority: Weight Part is %u", weight_part);
-		info("priority: Weight QOS is %u", weight_qos);
-		info("priority: Flags is %u", flags);
-	}
+	log_flag(PRIO, "priority: Damp Factor is %u", damp_factor);
+	log_flag(PRIO, "priority: AccountingStorageEnforce is %u", enforce);
+	log_flag(PRIO, "priority: Max Age is %u", max_age);
+	log_flag(PRIO, "priority: Weight Age is %u", weight_age);
+	log_flag(PRIO, "priority: Weight Assoc is %u", weight_assoc);
+	log_flag(PRIO, "priority: Weight Fairshare is %u", weight_fs);
+	log_flag(PRIO, "priority: Weight JobSize is %u", weight_js);
+	log_flag(PRIO, "priority: Weight Part is %u", weight_part);
+	log_flag(PRIO, "priority: Weight QOS is %u", weight_qos);
+	log_flag(PRIO, "priority: Flags is %u", flags);
 }
 
 
@@ -1690,25 +1654,16 @@ static void _depth_oblivious_set_usage_efctv(slurmdb_assoc_rec_t *assoc)
 			assoc->usage->shares_norm;
 #endif
 
-		if (priority_debug) {
-			info("Effective usage for %s %s off %s(%s) "
-			     "(%Lf * %Lf ^ %Lf) * %f  = %Lf",
-			     child, child_str,
-			     assoc->usage->parent_assoc_ptr->acct,
-			     assoc->usage->fs_assoc_ptr->acct,
-			     ratio_p, ratio_l, k,
-			     assoc->usage->shares_norm,
-			     assoc->usage->usage_efctv);
-		}
+		log_flag(PRIO, "Effective usage for %s %s off %s(%s) (%Lf * %Lf ^ %Lf) * %f  = %Lf",
+			 child, child_str, assoc->usage->parent_assoc_ptr->acct,
+			 assoc->usage->fs_assoc_ptr->acct, ratio_p, ratio_l, k,
+			 assoc->usage->shares_norm, assoc->usage->usage_efctv);
 	} else {
 		assoc->usage->usage_efctv = assoc->usage->usage_norm;
-		if (priority_debug) {
-			info("Effective usage for %s %s off %s(%s) %Lf",
-			     child, child_str,
-			     assoc->usage->parent_assoc_ptr->acct,
-			     assoc->usage->fs_assoc_ptr->acct,
-			     assoc->usage->usage_efctv);
-		}
+		log_flag(PRIO, "Effective usage for %s %s off %s(%s) %Lf",
+			 child, child_str, assoc->usage->parent_assoc_ptr->acct,
+			 assoc->usage->fs_assoc_ptr->acct,
+			 assoc->usage->usage_efctv);
 	}
 }
 
@@ -1738,7 +1693,6 @@ static void _set_usage_efctv(slurmdb_assoc_rec_t *assoc)
  */
 int init ( void )
 {
-	char *temp = NULL;
 	/* Write lock on jobs, read lock on nodes and partitions */
 	slurmctld_lock_t job_write_lock =
 		{ NO_LOCK, WRITE_LOCK, READ_LOCK, READ_LOCK, NO_LOCK };
@@ -1752,18 +1706,11 @@ int init ( void )
 	_internal_setup();
 
 	/* Check to see if we are running a supported accounting plugin */
-	temp = slurm_get_accounting_storage_type();
-	if (xstrcasecmp(temp, "accounting_storage/slurmdbd")
-	    && xstrcasecmp(temp, "accounting_storage/mysql")) {
+	if (!slurm_with_slurmdbd()) {
 		time_t start_time = time(NULL);
-		error("You are not running a supported "
-		      "accounting_storage plugin\n(%s).\n"
-		      "Fairshare can only be calculated with either "
-		      "'accounting_storage/slurmdbd' "
-		      "or 'accounting_storage/mysql' enabled.  "
-		      "If you want multifactor priority without fairshare "
-		      "ignore this message.",
-		      temp);
+		error("You are not running a supported accounting_storage plugin\n"
+		      "Fairshare can only be calculated with 'accounting_storage/slurmdbd' enabled.\n"
+		      "If you want multifactor priority without fairshare ignore this message.");
 		calc_fairshare = 0;
 		weight_fs = 0;
 
@@ -1806,8 +1753,6 @@ int init ( void )
 		}
 		calc_fairshare = 0;
 	}
-
-	xfree(temp);
 
 	site_factor_plugin_init();
 
@@ -1925,7 +1870,7 @@ extern void priority_p_set_assoc_usage(slurmdb_assoc_rec_t *assoc)
 	set_assoc_usage_norm(assoc);
 	_set_assoc_usage_efctv(assoc);
 
-	if (priority_debug)
+	if (slurm_conf.debug_flags & DEBUG_FLAG_PRIO)
 		_priority_p_set_assoc_usage_debug(assoc);
 }
 
@@ -2005,12 +1950,12 @@ extern List priority_p_get_priority_factors_list(
 			if (job_ptr->priority == 0)
 				continue;
 
-			if ((slurmctld_conf.private_data & PRIVATE_DATA_JOBS) &&
+			if ((slurm_conf.private_data & PRIVATE_DATA_JOBS) &&
 			    (job_ptr->user_id != uid) &&
 			    !validate_operator(uid) &&
 			    (((slurm_mcs_get_privatedata() == 0) &&
 			      !assoc_mgr_is_user_acct_coord(acct_db_conn, uid,
-							    job_ptr->account))||
+			                                    job_ptr->account))||
 			     ((slurm_mcs_get_privatedata() == 1) &&
 			      (mcs_g_check_mcs_label(uid, job_ptr->mcs_label)
 			       != 0))))
@@ -2033,8 +1978,7 @@ extern List priority_p_get_priority_factors_list(
  * READ_LOCK, READ_LOCK, NO_LOCK }; should be locked before calling this */
 extern void priority_p_job_end(job_record_t *job_ptr)
 {
-	if (priority_debug)
-		info("priority_p_job_end: called for job %u", job_ptr->job_id);
+	log_flag(PRIO, "%s: called for job %u", __func__, job_ptr->job_id);
 
 	_apply_new_usage(job_ptr, g_last_ran, time(NULL), 1);
 }

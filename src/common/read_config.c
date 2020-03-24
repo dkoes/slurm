@@ -46,7 +46,6 @@
 #include "config.h"
 
 #include <arpa/inet.h>
-#include <assert.h>
 #include <ctype.h>
 #include <errno.h>
 #include <limits.h>
@@ -87,6 +86,7 @@
 #include "src/common/strlcpy.h"
 #include "src/common/uid.h"
 #include "src/common/util-net.h"
+#include "src/common/xassert.h"
 #include "src/common/xmalloc.h"
 #include "src/common/xstring.h"
 
@@ -100,10 +100,10 @@ strong_alias(get_extra_conf_path, slurm_get_extra_conf_path);
 strong_alias(sort_key_pairs, slurm_sort_key_pairs);
 
 /*
- * Instantiation of the "extern slurm_ctl_conf_t slurmctld_conf" and
+ * Instantiation of the "extern slurm_conf_t slurm_conf" and
  * "bool ignore_state_errors" found in slurmctld.h
  */
-slurm_ctl_conf_t slurmctld_conf;
+slurm_conf_t slurm_conf;
 bool ignore_state_errors = false;
 
 #ifndef NDEBUG
@@ -112,7 +112,7 @@ uint16_t drop_priv_flag = 0;
 
 static pthread_mutex_t conf_lock = PTHREAD_MUTEX_INITIALIZER;
 static s_p_hashtbl_t *conf_hashtbl = NULL;
-static slurm_ctl_conf_t *conf_ptr = &slurmctld_conf;
+static slurm_conf_t *conf_ptr = &slurm_conf;
 static bool conf_initialized = false;
 static s_p_hashtbl_t *default_frontend_tbl;
 static s_p_hashtbl_t *default_nodename_tbl;
@@ -178,7 +178,7 @@ static int _parse_nodeset(void **dest, slurm_parser_enum_t type,
 			  const char *line, char **leftover);
 static void _destroy_nodeset(void *ptr);
 
-static int _load_slurmctld_host(slurm_ctl_conf_t *conf);
+static int _load_slurmctld_host(slurm_conf_t *conf);
 static int _parse_slurmctld_host(void **dest, slurm_parser_enum_t type,
 				 const char *key, const char *value,
 				 const char *line, char **leftover);
@@ -187,8 +187,8 @@ static void _destroy_slurmctld_host(void *ptr);
 static int _defunct_option(void **dest, slurm_parser_enum_t type,
 			   const char *key, const char *value,
 			   const char *line, char **leftover);
-static int _validate_and_set_defaults(slurm_ctl_conf_t *conf,
-				      s_p_hashtbl_t *hashtbl);
+static int _validate_and_set_defaults(slurm_conf_t *conf,
+                                      s_p_hashtbl_t *hashtbl);
 static uint16_t *_parse_srun_ports(const char *);
 
 s_p_options_t slurm_conf_options[] = {
@@ -1696,7 +1696,7 @@ static void _destroy_partitionname(void *ptr)
 	xfree(ptr);
 }
 
-static int _load_slurmctld_host(slurm_ctl_conf_t *conf)
+static int _load_slurmctld_host(slurm_conf_t *conf)
 {
 	int count = 0, i, j;
 	char *ignore;
@@ -2719,13 +2719,12 @@ int gethostname_short(char *name, size_t len)
 }
 
 /*
- * free_slurm_conf - free all storage associated with a slurm_ctl_conf_t.
+ * free_slurm_conf - free all storage associated with a slurm_conf_t.
  * IN/OUT ctl_conf_ptr - pointer to data structure to be freed
  * IN purge_node_hash - purge system-wide node hash table if set,
  *			set to zero if clearing private copy of config data
  */
-extern void
-free_slurm_conf (slurm_ctl_conf_t *ctl_conf_ptr, bool purge_node_hash)
+extern void free_slurm_conf(slurm_conf_t *ctl_conf_ptr, bool purge_node_hash)
 {
 	int i;
 
@@ -2872,8 +2871,7 @@ free_slurm_conf (slurm_ctl_conf_t *ctl_conf_ptr, bool purge_node_hash)
  *	file pathname (slurm_conf) is not changed.
  * IN/OUT ctl_conf_ptr - pointer to data structure to be initialized
  */
-void
-init_slurm_conf (slurm_ctl_conf_t *ctl_conf_ptr)
+void init_slurm_conf(slurm_conf_t *ctl_conf_ptr)
 {
 	int i;
 
@@ -3137,6 +3135,7 @@ _destroy_slurm_conf(void)
  *   a. argument if not NULL
  *   b. SLURM_CONF if not NULL
  *   c. default_slurm_config_file if it exists.
+ *   d. /run/slurm/conf/slurm.conf if it exists.
  * 2. SLURM_CONF_SERVER env var (not documented, meant for testing only)
  * 3. DNS SRV record
  */
@@ -3238,7 +3237,7 @@ slurm_conf_init(const char *file_name)
 	/*
 	 * Ensure this determination is propagated throughout. A number of
 	 * other internal functions will call getenv("SLURM_CONF") rather
-	 * than use slurmctld_conf.slurm_conf, and we want to ensure they
+	 * than use slurm_conf.slurm_conf, and we want to ensure they
 	 * don't need to make similar decisions on where the configs live.
 	 */
 	setenv("SLURM_CONF", config_file, 1);
@@ -3351,8 +3350,7 @@ slurm_conf_destroy(void)
 	return SLURM_SUCCESS;
 }
 
-extern slurm_ctl_conf_t *
-slurm_conf_lock(void)
+extern slurm_conf_t *slurm_conf_lock(void)
 {
 	int i;
 
@@ -3461,8 +3459,8 @@ static bool _have_hbm_token(char *gres_plugins)
  *	with this machine's name.
  * NOTE: if control_addr is NULL, it is over-written by control_machine
  */
-static int
-_validate_and_set_defaults(slurm_ctl_conf_t *conf, s_p_hashtbl_t *hashtbl)
+static int _validate_and_set_defaults(slurm_conf_t *conf,
+                                      s_p_hashtbl_t *hashtbl)
 {
 	char *temp_str = NULL;
 	long long_suspend_time;

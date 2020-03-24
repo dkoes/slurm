@@ -1,4 +1,4 @@
-.TH srun "1" "Slurm Commands" "January 2020" "Slurm Commands"
+.TH srun "1" "Slurm Commands" "March 2020" "Slurm Commands"
 
 .SH "NAME"
 srun \- Run parallel jobs
@@ -24,20 +24,23 @@ https://slurm.schedmd.com/cpu_management.html
 srun will return the highest exit code of all tasks run or the highest signal
 (with the high-order bit set in an 8-bit integer -- e.g. 128 + signal) of any
 task that exited with a signal.
+.br
+The value 253 is reserved for out-of-memory errors.
 
 .SH "EXECUTABLE PATH RESOLUTION"
 
 The executable is resolved in the following order:
 .br
-.IP 1. 3
-If executable starts with ".", then path is constructed as:
+
+1. If executable starts with ".", then path is constructed as:
 current working directory / executable
-.IP 2.
-If executable starts with a "/", then path is considered absolute.
-.IP 3.
-If executable can be resolved through PATH. See \fBpath_resolution\fR(7).
-.IP 4.
-If executable is in current working directory.
+.br
+2. If executable starts with a "/", then path is considered absolute.
+.br
+3. If executable can be resolved through PATH. See \fBpath_resolution\fR(7).
+.br
+4. If executable is in current working directory.
+.br
 .P
 Current working directory is the calling process working directory unless the
 \fB\-\-chdir\fR argument is passed, which will override the current working
@@ -425,8 +428,10 @@ The mapping is specified for a node and identical mapping is applied to the
 tasks on every node (i.e. the lowest task ID on each node is mapped to the
 first mask specified in the list, etc.).
 CPU masks are \fBalways\fR interpreted as hexadecimal values but can be
-preceded with an optional '0x'. Not supported unless the entire node is
-allocated to the job.
+preceded with an optional '0x'.
+If the number of tasks (or ranks) exceeds the number of elements in this list,
+elements in the list will be reused as needed starting from the beginning of
+the list.
 To simplify support for large task counts, the lists may follow a map with an
 asterisk and repetition count
 For example "mask_cpu:0x0f*4,0xf0*4".
@@ -673,9 +678,10 @@ to job allocations.
 .RS
 .TP
 \fBafter:job_id[[+time][:jobid[+time]...]]\fR
-After the specified jobs start and 'time' in minutes from job start happens this
+After the specified jobs start or are cancelled and 'time' in minutes from job
+start or cancellation happens, this
 job can begin execution. If no 'time' is given then then there is no delay after
-start.
+start or cancellation.
 .TP
 \fBafterany:job_id[:jobid...]\fR
 This job can begin execution after the specified jobs have terminated.
@@ -762,7 +768,7 @@ an existing resource allocation, where you want separate processors to
 be dedicated to each job step. If sufficient processors are not
 available to initiate the job step, it will be deferred. This can
 be thought of as providing a mechanism for resource management to the job
-within it's allocation.
+within its allocation.
 
 The exclusive allocation of CPUs only applies to job steps explicitly invoked
 with the \fB\-\-exclusive\fR option.
@@ -887,9 +893,8 @@ Bind by setting GPU masks on tasks (or ranks) as specified where <list> is
 a node and identical mapping is applied to the tasks on every node (i.e. the
 lowest task ID on each node is mapped to the first mask specified in the list,
 etc.). GPU masks are always interpreted as hexadecimal values but can be
-preceded with an optional '0x'. Not supported unless the entire node is
-allocated to the job. To simplify support for large task counts, the lists
-may follow a map with an asterisk and repetition count.
+preceded with an optional '0x'. To simplify support for large task counts, the
+lists may follow a map with an asterisk and repetition count.
 For example "mask_gpu:0x0f*4,0xf0*4".
 Not supported unless the entire node is allocated to the job.
 .RE
@@ -958,13 +963,12 @@ This option applies to job allocations.
 Specify the number of GPUs required for the job on each task to be spawned
 in the job's resource allocation.
 An optional GPU type specification can be supplied.
-This option requires the specification of a task count.
-For example "\-\-gpus\-per\-task=volta:1".
-Multiple options can be requested in a comma separated list, for example:
-"\-\-gpus\-per\-task=volta:3,kepler:1".
-Requires job to specify a task count (\-\-nodes).
-See also the \fB\-\-gpus\fR, \fB\-\-gpus\-per\-socket\fR and
-\fB\-\-gpus\-per\-node\fR options.
+For example "\-\-gpus\-per\-task=volta:1". Multiple options can be
+requested in a comma separated list, for example:
+"\-\-gpus\-per\-task=volta:3,kepler:1". See also the \fB\-\-gpus\fR,
+\fB\-\-gpus\-per\-socket\fR and \fB\-\-gpus\-per\-node\fR options.
+This option requires an explicit task count, e.g. -n, --ntasks or "--gpus=X
+--gpus-per-task=Y" rather than an ambiguous range of nodes with -N, --nodes.
 .br
 NOTE: This option will not have any impact on GPU binding, specifically
 it won't limit the number of devices set for CUDA_VISIBLE_DEVICES.
@@ -1295,8 +1299,9 @@ Optional control for task distribution over nodes:
 
 .TP
 .B Pack
-Rather than evenly distributing a job step's tasks evenly across it's allocated
+Rather than evenly distributing a job step's tasks evenly across its allocated
 nodes, pack them as tightly as possible on the nodes.
+This only applies when the "block" task distribution method is used.
 .TP
 .B NoPack
 Rather than packing a job step's tasks as tightly as possible on the nodes,
@@ -1430,7 +1435,7 @@ be performed at the level of nodes, where the definition of "nodes"
 may differ from system to system.
 By default no memory binding is performed; any task using any CPU can use
 any memory. This option is typically used to ensure that each task is bound to
-the memory closest to it's assigned CPU. \fBThe use of any type other than
+the memory closest to its assigned CPU. \fBThe use of any type other than
 "none" or "local" is not recommended.\fR
 If you want greater control, try running a simple test code with the
 options "\-\-cpu\-bind=verbose,none \-\-mem\-bind=verbose,none" to determine
@@ -2007,7 +2012,7 @@ Request a quality of service for the job.  QOS values can be defined
 for each user/cluster/account association in the Slurm database.
 Users will be limited to their association's defined set of qos's when
 the Slurm configuration parameter, AccountingStorageEnforce, includes
-"qos" in it's definition. This option applies to job allocations.
+"qos" in its definition. This option applies to job allocations.
 
 .TP
 \fB\-Q\fR, \fB\-\-quiet\fR
@@ -2235,7 +2240,7 @@ plugin is enabled. This option applies to job allocations.
 .TP
 \fB\-\-time\-min\fR=<\fItime\fR>
 Set a minimum time limit on the job allocation.
-If specified, the job may have it's \fB\-\-time\fR limit lowered to a value
+If specified, the job may have its \fB\-\-time\fR limit lowered to a value
 no lower than \fB\-\-time\-min\fR if doing so permits the job to begin
 execution earlier than otherwise possible.
 The job's time limit will not be changed after the job is allocated resources.

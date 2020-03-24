@@ -160,10 +160,11 @@ static inline void _check_magic_fd(con_mgr_fd_t *con)
 static void _connection_fd_delete(void *x)
 {
 	con_mgr_fd_t *con = x;
-	con_mgr_t *mgr = con->mgr;
+	con_mgr_t *mgr;
 
 	if (!con)
 		return;
+	mgr = con->mgr;
 
 	_check_magic_mgr(mgr);
 	log_flag(NET, "%s: [%s] free connection input_fd=%d output_fd=%d",
@@ -177,9 +178,6 @@ static void _connection_fd_delete(void *x)
 	else
 		xassert(!list_remove_first(mgr->connections, _find_by_ptr,
 					   con));
-	xassert((con->magic = ~MAGIC_CON_MGR_FD));
-	xassert((con->input_fd = -1));
-	xassert((con->output_fd = -1));
 	FREE_NULL_BUFFER(con->in);
 	FREE_NULL_BUFFER(con->out);
 	FREE_NULL_LIST(con->work);
@@ -187,6 +185,7 @@ static void _connection_fd_delete(void *x)
 	xfree(con->unix_socket);
 
 	xassert(!con->arg);
+	con->magic = ~MAGIC_CON_MGR_FD;
 	xfree(con);
 }
 
@@ -213,9 +212,9 @@ extern con_mgr_t *init_con_mgr(int thread_count)
 {
 	con_mgr_t *mgr = xmalloc(sizeof(*mgr));
 
+	mgr->magic = MAGIC_CON_MGR;
 	mgr->connections = list_create(NULL);
 	mgr->listen = list_create(NULL);
-	xassert((mgr->magic = MAGIC_CON_MGR));
 
 	slurm_mutex_init(&mgr->mutex);
 	slurm_cond_init(&mgr->cond, NULL);
@@ -312,8 +311,6 @@ extern void free_con_mgr(con_mgr_t *mgr)
 	xassert(!mgr->listen_active);
 	xassert(!mgr->inspecting);
 
-	xassert((mgr->magic = ~MAGIC_CON_MGR));
-
 	xassert(list_is_empty(mgr->connections));
 	xassert(list_is_empty(mgr->listen));
 	FREE_NULL_LIST(mgr->connections);
@@ -328,6 +325,7 @@ extern void free_con_mgr(con_mgr_t *mgr)
 	if (close(mgr->sigint_fd[0]) || close(mgr->sigint_fd[1]))
 		error("%s: unable to close sigint_fd: %m", __func__);
 
+	mgr->magic = ~MAGIC_CON_MGR;
 	xfree(mgr);
 }
 
@@ -569,11 +567,7 @@ static void _wrap_work(void *x)
 	_signal_change(mgr, true);
 	slurm_mutex_unlock(&mgr->mutex);
 
-	xassert(!(args->arg = NULL));
-	xassert(!(args->tag = NULL));
-	xassert(!(args->func = NULL));
-	xassert(!(args->con = NULL));
-	xassert((args->magic = ~MAGIC_WRAP_WORK));
+	args->magic = ~MAGIC_WRAP_WORK;
 	xfree(args);
 }
 
@@ -583,8 +577,8 @@ static void _wrap_work(void *x)
 static inline void _add_con_work_args(bool locked, con_mgr_fd_t *con,
 				      wrap_work_arg_t *args)
 {
-	log_flag(NET, "%s: [%s] locked=%hu func=%s",
-		 __func__, con->name, locked, args->tag);
+	log_flag(NET, "%s: [%s] locked=%s func=%s",
+		 __func__, con->name, (locked ? "T" : "F"), args->tag);
 
 	if (!locked)
 		slurm_mutex_lock(&con->mgr->mutex);
@@ -960,8 +954,9 @@ static inline void _handle_poll_event(con_mgr_t *mgr, int fd, con_mgr_fd_t *con,
 		goto close;
 	}
 
-	log_flag(NET, "%s: [%s] fd=%u can_read=%hu can_write=%hu",
-		 __func__, con->name, fd, con->can_read, con->can_write);
+	log_flag(NET, "%s: [%s] fd=%u can_read=%s can_write=%s",
+		 __func__, con->name, fd, (con->can_read ? "T" : "F"),
+		 (con->can_write ? "T" : "F"));
 	return;
 close:
 	con->can_read = false;
@@ -1173,7 +1168,7 @@ static inline void _handle_listen_event(con_mgr_t *mgr, int fd,
 static void _handle_event_pipe(con_mgr_t *mgr, const struct pollfd *fds_ptr,
 			       const char *tag, const char *name)
 {
-	if (slurmctld_conf.debug_flags & DEBUG_FLAG_NET) {
+	if (slurm_conf.debug_flags & DEBUG_FLAG_NET) {
 		char *flags = poll_revents_to_str(fds_ptr->revents);
 
 		log_flag(NET, "%s: [%s] signal pipe %s flags:%s",
@@ -1227,7 +1222,7 @@ static inline void _poll(con_mgr_t *mgr, poll_args_t *args, List fds,
 			_handle_event_pipe(mgr, fds_ptr, tag, "CHANGE_EVENT");
 		else if ((con = list_find_first(fds, _find_by_fd,
 						&fds_ptr->fd))) {
-			if (slurmctld_conf.debug_flags & DEBUG_FLAG_NET) {
+			if (slurm_conf.debug_flags & DEBUG_FLAG_NET) {
 				char *flags = poll_revents_to_str(
 					fds_ptr->revents);
 				log_flag(NET, "%s: [%s->%s] poll event detect flags:%s",
@@ -1308,8 +1303,8 @@ static void _poll_connections(void *x)
 		    con->input_fd == -1)
 			continue;
 
-		log_flag(NET, "%s: [%s] poll read_eof=%hu input=%u output=%u",
-			 __func__, con->name, con->read_eof,
+		log_flag(NET, "%s: [%s] poll read_eof=%s input=%u output=%u",
+			 __func__, con->name, (con->read_eof ? "T" : "F"),
 			 get_buf_offset(con->in), get_buf_offset(con->out));
 
 		if (con->input_fd == con->output_fd) {

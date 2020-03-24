@@ -1,7 +1,6 @@
 /*****************************************************************************\
  *  as_mysql_resv.c - functions dealing with reservations.
  *****************************************************************************
- *
  *  Copyright (C) 2004-2007 The Regents of the University of California.
  *  Copyright (C) 2008-2010 Lawrence Livermore National Security.
  *  Produced at Lawrence Livermore National Laboratory (cf, DISCLAIMER).
@@ -239,8 +238,7 @@ extern int as_mysql_add_resv(mysql_conn_t *mysql_conn,
 		   "on duplicate key update deleted=0%s;",
 		   resv->cluster, resv_table, cols, resv->id, vals, extra);
 
-	if (debug_flags & DEBUG_FLAG_DB_RESV)
-		DB_DEBUG(mysql_conn->conn, "query\n%s", query);
+	DB_DEBUG(DB_RESV, mysql_conn->conn, "query\n%s", query);
 
 	rc = mysql_db_query(mysql_conn, query);
 
@@ -422,8 +420,7 @@ extern int as_mysql_modify_resv(mysql_conn_t *mysql_conn,
 			   vals, extra);
 	}
 
-	if (debug_flags & DEBUG_FLAG_DB_RESV)
-		DB_DEBUG(mysql_conn->conn, "query\n%s", query);
+	DB_DEBUG(DB_RESV, mysql_conn->conn, "query\n%s", query);
 
 	rc = mysql_db_query(mysql_conn, query);
 
@@ -480,8 +477,7 @@ extern int as_mysql_remove_resv(mysql_conn_t *mysql_conn,
 		   resv->cluster, resv_table, resv->time_start_prev,
 		   resv->id, resv->time_start);
 
-	if (debug_flags & DEBUG_FLAG_DB_RESV)
-		DB_DEBUG(mysql_conn->conn, "query\n%s", query);
+	DB_DEBUG(DB_RESV, mysql_conn->conn, "query\n%s", query);
 
 	rc = mysql_db_query(mysql_conn, query);
 
@@ -615,8 +611,7 @@ empty:
 
 	xfree(tmp);
 	xfree(extra);
-	if (debug_flags & DEBUG_FLAG_DB_RESV)
-		DB_DEBUG(mysql_conn->conn, "query\n%s", query);
+	DB_DEBUG(DB_RESV, mysql_conn->conn, "query\n%s", query);
 	if (!(result = mysql_db_query_ret(mysql_conn, query, 0))) {
 		xfree(query);
 		FREE_NULL_LIST(local_cluster_list);

@@ -716,7 +716,7 @@ static int _unpack_priority_factors_object(void **object, Buf buffer,
 	return SLURM_SUCCESS;
 
 unpack_error:
-	_priority_factors_resp_list_del(object);
+	_priority_factors_resp_list_del(object_ptr);
 	*object = NULL;
 	return SLURM_ERROR;
 }
@@ -4363,10 +4363,7 @@ _unpack_slurm_ctl_conf_msg(slurm_ctl_conf_info_msg_t **build_buffer_ptr,
 {
 	uint32_t uint32_tmp = 0;
 	uint16_t uint16_tmp = 0;
-	slurm_ctl_conf_info_msg_t *build_ptr;
-
-	/* alloc memory for structure */
-	build_ptr = xmalloc(sizeof(slurm_ctl_conf_t));
+	slurm_ctl_conf_info_msg_t *build_ptr = xmalloc(sizeof(*build_ptr));
 	*build_buffer_ptr = build_ptr;
 
 	/* initialize this so we don't check for those not sending it */

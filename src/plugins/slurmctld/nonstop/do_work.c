@@ -272,6 +272,8 @@ static int _update_job(job_desc_msg_t * job_specs, uid_t uid)
 {
 	slurm_msg_t msg;
 
+	slurm_msg_t_init(&msg);
+
 	msg.data= job_specs;
 	msg.conn_fd = -1;
 	return update_job(&msg, uid, true);
@@ -898,6 +900,7 @@ extern char *drop_node(char *cmd_ptr, uid_t cmd_uid,
 	sep1 = strstr(cmd_ptr + 15, "NODE:");
 	if (!sep1) {
 		xstrfmtcat(resp, "%s ECMD", SLURM_VERSION_STRING);
+		slurm_mutex_lock(&job_fail_mutex);
 		goto fini;
 	}
 	node_name = sep1 + 5;

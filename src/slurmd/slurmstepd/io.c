@@ -93,11 +93,9 @@ struct io_operations client_ops = {
 	.handle_write = &_client_write,
 };
 
+#define CLIENT_IO_MAGIC 0x10102
 struct client_io_info {
-#ifndef NDEBUG
-#define CLIENT_IO_MAGIC  0x10102
 	int                   magic;
-#endif
 	stepd_step_rec_t    *job;		 /* pointer back to job data   */
 
 	/* incoming variables */
@@ -145,11 +143,9 @@ struct io_operations task_write_ops = {
 	.handle_error = &_task_write_error,
 };
 
+#define TASK_IN_MAGIC 0x10103
 struct task_write_info {
-#ifndef NDEBUG
-#define TASK_IN_MAGIC  0x10103
 	int              magic;
-#endif
 	stepd_step_rec_t    *job;		 /* pointer back to job data   */
 
 	List msg_queue;
@@ -168,11 +164,9 @@ struct io_operations task_read_ops = {
 	.handle_read = &_task_read,
 };
 
-struct task_read_info {
-#ifndef NDEBUG
 #define TASK_OUT_MAGIC  0x10103
+struct task_read_info {
 	int              magic;
-#endif
 	uint16_t         type;           /* type of IO object          */
 	uint16_t         gtaskid;
 	uint16_t         ltaskid;
@@ -591,13 +585,10 @@ _local_file_write(eio_obj_t *obj, List objs)
 static eio_obj_t *
 _create_task_in_eio(int fd, stepd_step_rec_t *job)
 {
-	struct task_write_info *t = NULL;
+	struct task_write_info *t = xmalloc(sizeof(*t));
 	eio_obj_t *eio = NULL;
 
-	t = (struct task_write_info *)xmalloc(sizeof(struct task_write_info));
-#ifndef NDEBUG
 	t->magic = TASK_IN_MAGIC;
-#endif
 	t->job = job;
 	t->msg_queue = list_create(NULL); /* FIXME! Add destructor */
 	t->msg = NULL;
@@ -708,13 +699,10 @@ static eio_obj_t *
 _create_task_out_eio(int fd, uint16_t type,
 		     stepd_step_rec_t *job, stepd_step_task_info_t *task)
 {
-	struct task_read_info *out = NULL;
+	struct task_read_info *out = xmalloc(sizeof(*out));
 	eio_obj_t *eio = NULL;
 
-	out = (struct task_read_info *)xmalloc(sizeof(struct task_read_info));
-#ifndef NDEBUG
 	out->magic = TASK_OUT_MAGIC;
-#endif
 	out->type = type;
 	out->gtaskid = task->gtid;
 	out->ltaskid = task->id;
@@ -1512,10 +1500,8 @@ io_create_local_client(const char *filename, int file_flags,
 	fd_set_close_on_exec(fd);
 
 	/* Now set up the eio object */
-	client = xmalloc(sizeof(struct client_io_info));
-#ifndef NDEBUG
+	client = xmalloc(sizeof(*client));
 	client->magic = CLIENT_IO_MAGIC;
-#endif
 	client->job = job;
 	client->msg_queue = list_create(NULL); /* FIXME - destructor */
 
@@ -1586,10 +1572,8 @@ io_initial_client_connect(srun_info_t *srun, stepd_step_rec_t *job,
 	fd_set_close_on_exec(sock);
 
 	/* Now set up the eio object */
-	client = xmalloc(sizeof(struct client_io_info));
-#ifndef NDEBUG
+	client = xmalloc(sizeof(*client));
 	client->magic = CLIENT_IO_MAGIC;
-#endif
 	client->job = job;
 	client->msg_queue = list_create(NULL); /* FIXME - destructor */
 
@@ -1646,10 +1630,8 @@ io_client_connect(srun_info_t *srun, stepd_step_rec_t *job)
 	fd_set_close_on_exec(sock);
 
 	/* Now set up the eio object */
-	client = xmalloc(sizeof(struct client_io_info));
-#ifndef NDEBUG
+	client = xmalloc(sizeof(*client));
 	client->magic = CLIENT_IO_MAGIC;
-#endif
 	client->job = job;
 	client->msg_queue = NULL; /* initialized in _client_writable */
 
@@ -1866,9 +1848,8 @@ static struct io_buf *_task_build_message(struct task_read_info *out,
 struct io_buf *
 alloc_io_buf(void)
 {
-	struct io_buf *buf;
+	struct io_buf *buf = xmalloc(sizeof(*buf));
 
-	buf = xmalloc(sizeof(struct io_buf));
 	buf->ref_count = 0;
 	buf->length = 0;
 	/* The following "+ 1" is just temporary so I can stick a \0 at
@@ -2100,7 +2081,6 @@ io_find_filename_pattern( stepd_step_rec_t *job,
 int
 io_get_file_flags(stepd_step_rec_t *job)
 {
-	slurm_ctl_conf_t *conf;
 	int file_flags;
 
 	/* set files for opening stdout/err */
@@ -2109,7 +2089,7 @@ io_get_file_flags(stepd_step_rec_t *job)
 	else if (job->open_mode == OPEN_MODE_TRUNCATE)
 		file_flags = O_CREAT|O_WRONLY|O_APPEND|O_TRUNC;
 	else {
-		conf = slurm_conf_lock();
+		slurm_conf_t *conf = slurm_conf_lock();
 		if (conf->job_file_append)
 			file_flags = O_CREAT|O_WRONLY|O_APPEND;
 		else

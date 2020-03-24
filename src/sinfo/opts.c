@@ -123,8 +123,7 @@ extern void parse_command_line(int argc, char **argv)
 
 	params.convert_flags = CONVERT_NUM_UNIT_EXACT;
 
-	if (slurmctld_conf.fed_params &&
-	    strstr(slurmctld_conf.fed_params, "fed_display"))
+	if (xstrstr(slurm_conf.fed_params, "fed_display"))
 		params.federation_flag = true;
 
 	if (getenv("SINFO_ALL")) {
@@ -324,36 +323,42 @@ extern void parse_command_line(int argc, char **argv)
 		if ( params.summarize ) {
 			long_form = true;
 			params.part_field_flag = true;	/* compute size later */
-			params.format = "partition:9 ,available:.5 ,time:.10 ,nodeaiot:.16 ,nodelist:0";
+			xstrdup(params.format);
+			params.format = xstrdup("partition:9 ,available:.5 ,time:.10 ,nodeaiot:.16 ,nodelist:0");
 		} else if ( params.node_flag ) {
 			long_form = true;
 			params.node_field_flag = true;	/* compute size later */
 			params.part_field_flag = true;	/* compute size later */
+			xstrdup(params.format);
 			params.format = params.long_output ?
-			  "nodelist:0 ,nodes:.6 ,partition:.9 ,statelong:.11 ,cpus:4 ,socketcorethread:.8 ,memory:.6 ,disk:.8 ,weight:.6 ,features:.8 ,reason:20" :
-			  "nodelist:0 ,nodes:.6 ,partition:.9 ,statecompact:6";
+				xstrdup("nodelist:0 ,nodes:.6 ,partition:.9 ,statelong:.11 ,cpus:4 ,socketcorethread:.8 ,memory:.6 ,disk:.8 ,weight:.6 ,features:.8 ,reason:20") :
+				xstrdup("nodelist:0 ,nodes:.6 ,partition:.9 ,statecompact:6");
 
 		} else if (params.list_reasons) {
 			long_form = true;
+			xstrdup(params.format);
 			params.format = params.long_output ?
-			  "reason:20 ,userlong:12 ,timestamp:19 ,statecompact:6 ,nodelist:0" :
-			  "reason:20 ,user:9 ,timestamp:19 ,nodelist:0";
+				xstrdup("reason:20 ,userlong:12 ,timestamp:19 ,statecompact:6 ,nodelist:0") :
+				xstrdup("reason:20 ,user:9 ,timestamp:19 ,nodelist:0");
 
 		} else if ((env_val = getenv ("SINFO_FORMAT"))) {
+			xstrdup(params.format);
 			params.format = xstrdup(env_val);
 
 		} else if (params.fed) {
 			long_form = true;
 			params.part_field_flag = true;	/* compute size later */
+			xstrdup(params.format);
 			params.format = params.long_output ?
-			  "partition:9 ,cluster:8 ,available:.5 ,time:.10 ,size:.10 ,root:.4 ,oversubscribe:.8 ,groups:.10 ,nodes:.6 ,statelong:.11 ,nodelist:0" :
-			  "partition:9 ,cluster:8 ,available:.5 ,time:.10 ,nodes:.6 ,statecompact:.6 ,nodelist:0";
+				xstrdup("partition:9 ,cluster:8 ,available:.5 ,time:.10 ,size:.10 ,root:.4 ,oversubscribe:.8 ,groups:.10 ,nodes:.6 ,statelong:.11 ,nodelist:0") :
+				xstrdup("partition:9 ,cluster:8 ,available:.5 ,time:.10 ,nodes:.6 ,statecompact:.6 ,nodelist:0");
 		} else {
 			long_form = true;
 			params.part_field_flag = true;	/* compute size later */
+			xstrdup(params.format);
 			params.format = params.long_output ?
-			  "partition:9 ,available:.5 ,time:.10 ,size:.10 ,root:.4 ,oversubscribe:.8 ,groups:.10 ,nodes:.6 ,statelong:.11 ,nodelist:0" :
-			  "partition:9 ,available:.5 ,time:.10 ,nodes:.6 ,statecompact:.6 ,nodelist:0";
+				xstrdup("partition:9 ,available:.5 ,time:.10 ,size:.10 ,root:.4 ,oversubscribe:.8 ,groups:.10 ,nodes:.6 ,statelong:.11 ,nodelist:0") :
+				xstrdup("partition:9 ,available:.5 ,time:.10 ,nodes:.6 ,statecompact:.6 ,nodelist:0");
 		}
 	}
 
@@ -604,7 +609,6 @@ _parse_format( char* format )
 		exit( 1 );
 	}
 
-	params.format_list = list_create( NULL );
 	if ((prefix = _get_prefix(format)))
 		format_add_prefix( params.format_list, 0, 0, prefix);
 
@@ -904,14 +908,12 @@ static int _parse_long_format (char* format_long)
 		exit( 1 );
 	}
 
-	params.format_list = list_create(NULL);
 	tmp_format = xstrdup(format_long);
 	token = strtok_r(tmp_format, ",",&str_tmp);
 
 	while (token) {
 		_parse_long_token( token, sep, &field_size, &right_justify,
 				   &suffix);
-
 		if (!xstrcasecmp(token, "all")) {
 			_parse_format ("%all");
 		} else if (!xstrcasecmp(token, "allocmem")) {
@@ -1233,7 +1235,7 @@ _parse_token( char *token, char *field, int *field_size, bool *right_justify,
 {
 	int i = 0;
 
-	assert (token != NULL);
+	xassert(token);
 
 	if (token[i] == '.') {
 		*right_justify = true;
@@ -1256,6 +1258,7 @@ _parse_long_token( char *token, char *sep, int *field_size, bool *right_justify,
 {
 	char *end_ptr = NULL, *ptr;
 
+	*suffix = NULL;
 	xassert(token);
 	ptr = strchr(token, ':');
 	if (ptr) {

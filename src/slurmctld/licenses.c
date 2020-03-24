@@ -68,7 +68,7 @@ static void _licenses_print(char *header, List licenses, job_record_t *job_ptr)
 
 	if (licenses == NULL)
 		return;
-	if ((slurmctld_conf.debug_flags & DEBUG_FLAG_LICENSE) == 0)
+	if (!(slurm_conf.debug_flags & DEBUG_FLAG_LICENSE))
 		return;
 
 	iter = list_iterator_create(licenses);
@@ -713,7 +713,7 @@ extern int license_job_return(job_record_t *job_ptr)
 		return rc;
 
 	last_license_update = time(NULL);
-	trace_job(job_ptr, __func__, "");
+	log_flag(TRACE_JOBS, "%s: %pJ", __func__, job_ptr);
 	slurm_mutex_lock(&license_mutex);
 	iter = list_iterator_create(job_ptr->license_list);
 	while ((license_entry = list_next(iter))) {

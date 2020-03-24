@@ -98,6 +98,7 @@
 
 static struct termios termdefaults;
 static uint32_t global_rc = 0;
+static uint32_t mpi_plugin_rc = 0;
 static srun_job_t *job = NULL;
 
 extern char **environ;	/* job environment */
@@ -206,6 +207,18 @@ int srun(int ac, char **av)
 
 	if ((global_rc & 0xff) == SIG_OOM)
 		global_rc = 1;	/* Exit code 1 */
+	else if (mpi_plugin_rc) {
+		/*
+		 * MPI plugin might have more precise information in some cases.
+		 * For example, if PMI[?] abort was by task X with return code
+		 * RC, the expectation is that srun will return RC as srun's
+		 * return code. However, to ensure proper cleanup, the plugin
+		 * kills the job with SIGKILL which obscures the original reason
+		 * for job exit.
+		 */
+		global_rc = mpi_plugin_rc;
+	}
+
 
 #ifdef MEMORY_LEAK_DEBUG
 	slurm_select_fini();
@@ -261,6 +274,8 @@ relaunch:
 				  opt_local)) {
 		if (launch_g_step_wait(job, got_alloc, opt_local) == -1)
 			goto relaunch;
+		if (job->step_ctx->launch_state->mpi_rc > mpi_plugin_rc)
+			mpi_plugin_rc = job->step_ctx->launch_state->mpi_rc;
 	}
 
 	if (opts->step_mutex) {
@@ -884,7 +899,7 @@ static void _setup_env_working_cluster(void)
 	if ((select_ptr = strchr(rpc_ptr, ':')))
 		*select_ptr++ = '\0';
 
-	if (xstrcmp(slurmctld_conf.cluster_name, working_env)) {
+	if (xstrcmp(slurm_conf.cluster_name, working_env)) {
 		working_cluster_rec = xmalloc(sizeof(slurmdb_cluster_rec_t));
 		slurmdb_init_cluster_rec(working_cluster_rec, false);
 

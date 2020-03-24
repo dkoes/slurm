@@ -756,7 +756,7 @@ extern int node_config_load(List gres_conf_list,
 	if (!gres_list_system)
 		gres_list_system = gpu_g_get_system_gpu_list(node_config);
 
-	if (slurm_get_debug_flags() & DEBUG_FLAG_GRES)
+	if (slurm_conf.debug_flags & DEBUG_FLAG_GRES)
 		log_lvl = LOG_LEVEL_VERBOSE;
 	else
 		log_lvl = LOG_LEVEL_DEBUG;
@@ -837,15 +837,15 @@ extern void step_reset_env(char ***step_env_ptr, void *gres_ptr,
 }
 
 /* Send GRES information to slurmstepd on the specified file descriptor */
-extern void send_stepd(int fd)
+extern void send_stepd(Buf buffer)
 {
-	common_send_stepd(fd, gres_devices);
+	common_send_stepd(buffer, gres_devices);
 }
 
 /* Receive GRES information from slurmd on the specified file descriptor */
-extern void recv_stepd(int fd)
+extern void recv_stepd(Buf buffer)
 {
-	common_recv_stepd(fd, &gres_devices);
+	common_recv_stepd(buffer, &gres_devices);
 }
 
 /*

@@ -41,12 +41,12 @@
 
 #include <ctype.h>
 #include <regex.h>
-#include <string.h>
-#include <sys/stat.h>
-#include <sys/types.h>
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdlib.h>
+#include <string.h>
+#include <sys/stat.h>
+#include <sys/types.h>
 #include <unistd.h>
 
 #include "src/common/hostlist.h"
@@ -57,9 +57,9 @@
 #include "src/common/parse_value.h"
 #include "src/common/read_config.h"
 #include "src/common/slurm_protocol_interface.h"
+#include "src/common/xassert.h"
 #include "src/common/xmalloc.h"
 #include "src/common/xstring.h"
-#include "src/common/xassert.h"
 
 #include "slurm/slurm.h"
 
@@ -102,12 +102,16 @@ struct s_p_values {
 	slurm_parser_operator_t operator;
 	int data_count;
 	void *data;
-	regex_t *keyvalue_re;
 	int (*handler)(void **data, slurm_parser_enum_t type,
 		       const char *key, const char *value,
 		       const char *line, char **leftover);
 	void (*destroy)(void *data);
 	s_p_values_t *next;
+};
+
+struct s_p_hashtbl {
+	regex_t keyvalue_re;
+	s_p_values_t *hash[CONF_HASH_LEN];
 };
 
 typedef struct _expline_values_st {
@@ -135,49 +139,44 @@ static int _conf_hashtbl_index(const char *key)
 	return hashval % CONF_HASH_LEN;
 }
 
-static void _conf_hashtbl_insert(s_p_hashtbl_t *hashtbl,
-				 s_p_values_t *value)
+static void _conf_hashtbl_insert(s_p_hashtbl_t *tbl, s_p_values_t *value)
 {
 	int idx;
 
 	xassert(value);
 	idx = _conf_hashtbl_index(value->key);
-	value->next = hashtbl[idx];
-	hashtbl[idx] = value;
+	value->next = tbl->hash[idx];
+	tbl->hash[idx] = value;
 }
 
 /*
  * NOTE - "key" is case insensitive.
  */
-static s_p_values_t *_conf_hashtbl_lookup(
-	const s_p_hashtbl_t *hashtbl, const char *key)
+static s_p_values_t *_conf_hashtbl_lookup(const s_p_hashtbl_t *tbl,
+					  const char *key)
 {
 	int idx;
 	s_p_values_t *p;
 
 	xassert(key);
-	if (hashtbl == NULL)
+	if (!tbl)
 		return NULL;
 
 	idx = _conf_hashtbl_index(key);
-	for (p = hashtbl[idx]; p != NULL; p = p->next) {
+	for (p = tbl->hash[idx]; p; p = p->next) {
 		if (xstrcasecmp(p->key, key) == 0)
 			return p;
 	}
+
 	return NULL;
 }
 
 s_p_hashtbl_t *s_p_hashtbl_create(const s_p_options_t options[])
 {
-	const s_p_options_t *op = NULL;
-	s_p_values_t *value = NULL;
-	s_p_hashtbl_t *hashtbl = NULL;
-	_expline_values_t* expdata;
+	s_p_hashtbl_t *tbl = xmalloc(sizeof(*tbl));
 
-	hashtbl = xcalloc(CONF_HASH_LEN, sizeof(s_p_values_t *));
-
-	for (op = options; op->key != NULL; op++) {
-		value = xmalloc(sizeof(s_p_values_t));
+	for (const s_p_options_t *op = options; op->key; op++) {
+		s_p_values_t *value = xmalloc(sizeof(*value));
 		value->key = xstrdup(op->key);
 		value->operator = S_P_OPERATOR_SET;
 		value->type = op->type;
@@ -188,8 +187,8 @@ s_p_hashtbl_t *s_p_hashtbl_create(const s_p_options_t options[])
 		value->destroy = op->destroy;
 		if (op->type == S_P_LINE || op->type == S_P_EXPLINE) {
 			/* line_options mandatory for S_P_*LINE */
+			_expline_values_t *expdata = xmalloc(sizeof(*expdata));
 			xassert(op->line_options);
-			expdata = xmalloc(sizeof(_expline_values_t));
 			expdata->template =
 				s_p_hashtbl_create(op->line_options);
 			expdata->index = xcalloc(CONF_HASH_LEN,
@@ -197,27 +196,13 @@ s_p_hashtbl_t *s_p_hashtbl_create(const s_p_options_t options[])
 			expdata->values = NULL;
 			value->data = expdata;
 		}
-		_conf_hashtbl_insert(hashtbl, value);
+		_conf_hashtbl_insert(tbl, value);
 	}
 
-	/*
-	 * Here we use hashtbl[0] as a place holder for the regex_t of the
-	 * structure.  If it doesn't exist put it in.  It will be initialized
-	 * later.
-	 */
-	if (!hashtbl[0]) {
-		value = xmalloc(sizeof(s_p_values_t));
-		value->next = hashtbl[0];
-		hashtbl[0] = value;
-	}
+	if (regcomp(&tbl->keyvalue_re, keyvalue_pattern, REG_EXTENDED))
+		fatal("keyvalue regex compilation failed");
 
-	hashtbl[0]->keyvalue_re = xmalloc(sizeof(regex_t));
-	if (regcomp(hashtbl[0]->keyvalue_re, keyvalue_pattern, REG_EXTENDED)) {
-		/* FIXME - should be fatal? */
-		error("keyvalue regex compilation failed");
-	}
-
-	return hashtbl;
+	return tbl;
 }
 
 /* Swap the data in two data structures without changing the linked list
@@ -281,29 +266,27 @@ static void _conf_file_values_free(s_p_values_t *p)
 	xfree(p);
 }
 
-void s_p_hashtbl_destroy(s_p_hashtbl_t *hashtbl) {
-	int i;
+void s_p_hashtbl_destroy(s_p_hashtbl_t *tbl)
+{
 	s_p_values_t *p, *next;
 
-	if (!hashtbl)
+	if (!tbl)
 		return;
 
-	if (hashtbl[0] && hashtbl[0]->keyvalue_re) {
-		regfree(hashtbl[0]->keyvalue_re);
-		xfree(hashtbl[0]->keyvalue_re);
-	}
-
-	for (i = 0; i < CONF_HASH_LEN; i++) {
-		for (p = hashtbl[i]; p != NULL; p = next) {
+	for (int i = 0; i < CONF_HASH_LEN; i++) {
+		for (p = tbl->hash[i]; p; p = next) {
 			next = p->next;
 			_conf_file_values_free(p);
 		}
 	}
-	xfree(hashtbl);
+
+	regfree(&tbl->keyvalue_re);
+
+	xfree(tbl);
 }
 
 /*
- * IN hashtbl - table to work off
+ * IN tbl - table to work off
  * IN line - string to be search for a key=value pair
  * OUT key - pointer to the key string (caller must free with xfree())
  * OUT value - pointer to the value string (caller must free with xfree())
@@ -311,7 +294,7 @@ void s_p_hashtbl_destroy(s_p_hashtbl_t *hashtbl) {
  *                 of the unsearched portion of the string
  * Return 0 when a key-value pair is found, and -1 otherwise.
  */
-static int _keyvalue_regex(s_p_hashtbl_t *hashtbl, const char *line,
+static int _keyvalue_regex(s_p_hashtbl_t *tbl, const char *line,
 			   char **key, char **value, char **remaining,
 			   slurm_parser_operator_t *operator)
 {
@@ -325,12 +308,8 @@ static int _keyvalue_regex(s_p_hashtbl_t *hashtbl, const char *line,
 	*operator = S_P_OPERATOR_SET;
 	memset(pmatch, 0, sizeof(regmatch_t)*nmatch);
 
-	xassert(hashtbl[0]->keyvalue_re);
-
-	if (regexec(hashtbl[0]->keyvalue_re, line, nmatch, pmatch, 0)
-	    == REG_NOMATCH) {
+	if (regexec(&tbl->keyvalue_re, line, nmatch, pmatch, 0) == REG_NOMATCH)
 		return -1;
-	}
 
 	*key = (char *)(xstrndup(line + pmatch[1].rm_so,
 				 pmatch[1].rm_eo - pmatch[1].rm_so));
@@ -503,55 +482,38 @@ static int _get_next_line(char *buf, int buf_size,
 	return lines;
 }
 
-/* copy all the keys from 'from_hashtbl' along with their types, handler, and
+/*
+ * Copy all the keys from 'from_hashtbl' along with their types, handler, and
  * destroy fields. Omit values in the copy and initialize them to NULL/0.
- *
- * if change_* is true, corresponding field will be updated with the next
- * corresponding parameter. */
-s_p_hashtbl_t* _hashtbl_copy_keys(const s_p_hashtbl_t* from_hashtbl,
-				  bool change_type,
-				  slurm_parser_enum_t new_type,
-				  bool change_handler,
-				  int (*handler)(void **data,
-					  slurm_parser_enum_t type, const char
-					  *key, const char *value, const char
-					  *line, char **leftover),
-				  bool change_destroyer,
-				  void (*destroy)(void *data)
-				  )
+ */
+s_p_hashtbl_t *_hashtbl_copy_keys(const s_p_hashtbl_t *from_tbl)
 {
-	s_p_hashtbl_t* to_hashtbl = NULL;
-	s_p_values_t *val_ptr,* val_copy;
-	int len, i;
+	s_p_hashtbl_t *to_tbl = xmalloc(sizeof(*to_tbl));
 
-	xassert(from_hashtbl);
+	xassert(from_tbl);
 
-	len = CONF_HASH_LEN * sizeof(s_p_values_t *);
-	to_hashtbl = xmalloc(len);
+	for (int i = 0; i < CONF_HASH_LEN; ++i) {
+		for (s_p_values_t *val_ptr = from_tbl->hash[i];
+		     val_ptr; val_ptr = val_ptr->next) {
+			s_p_values_t *val_copy = xmalloc(sizeof(*val_copy));
 
-	for (i = 0; i < CONF_HASH_LEN; ++i) {
-		for (val_ptr = from_hashtbl[i]; val_ptr;
-		     val_ptr = val_ptr->next) {
-			val_copy = xmalloc(sizeof(s_p_values_t));
 			val_copy->key = xstrdup(val_ptr->key);
 			val_copy->operator = val_ptr->operator;
 			val_copy->type = val_ptr->type;
 			val_copy->handler = val_ptr->handler;
 			val_copy->destroy = val_ptr->destroy;
-			if (change_type) {
-				val_copy->type = new_type;
-			}
-			if (change_handler) {
-				val_copy->handler = handler;
-			}
-			if (change_destroyer) {
-				val_copy->destroy = destroy;
-			}
-			_conf_hashtbl_insert(to_hashtbl, val_copy);
+			_conf_hashtbl_insert(to_tbl, val_copy);
 		}
 	}
 
-	return to_hashtbl;
+	/*
+	 * We cannot copy a regex since a regfree() on either
+	 * the original or the copy can affect the other one.
+	 */
+	if (regcomp(&to_tbl->keyvalue_re, keyvalue_pattern, REG_EXTENDED))
+		fatal("keyvalue regex compilation failed");
+
+	return to_tbl;
 }
 
 
@@ -867,8 +829,7 @@ static int _handle_line(s_p_values_t* v, const char* value,
 	_expline_values_t* v_data = (_expline_values_t*)v->data;
 	s_p_hashtbl_t* newtable;
 
-	newtable = _hashtbl_copy_keys(v_data->template, false, S_P_IGNORE,
-				      false, NULL, false, NULL);
+	newtable = _hashtbl_copy_keys(v_data->template);
 	if (s_p_parse_line_complete(newtable, v->key, value, line,
 				    leftover) == SLURM_ERROR) {
 		s_p_hashtbl_destroy(newtable);
@@ -1306,27 +1267,26 @@ int s_p_parse_buffer(s_p_hashtbl_t *hashtbl, uint32_t *hash_val,
  * IN from_hashtbl - Source of old data
  * IN to_hashtbl - Destination for old data
  */
-void s_p_hashtbl_merge(s_p_hashtbl_t *to_hashtbl, s_p_hashtbl_t *from_hashtbl)
+void s_p_hashtbl_merge(s_p_hashtbl_t *to_tbl, s_p_hashtbl_t *from_tbl)
 {
 	int i;
 	s_p_values_t **val_pptr, *val_ptr, *match_ptr;
 
-	if (!to_hashtbl || !from_hashtbl)
+	if (!to_tbl || !from_tbl)
 		return;
 
 	for (i = 0; i < CONF_HASH_LEN; i++) {
-		val_pptr = &from_hashtbl[i];
-		val_ptr = from_hashtbl[i];
+		val_pptr = &from_tbl->hash[i];
+		val_ptr = from_tbl->hash[i];
 		while (val_ptr) {
 			if (val_ptr->data_count == 0) {
-				/* No data in from_hashtbl record to move.
+				/* No data in from_tbl record to move.
 				 * Skip record */
 				val_pptr = &val_ptr->next;
 				val_ptr = val_ptr->next;
 				continue;
 			}
-			match_ptr = _conf_hashtbl_lookup(to_hashtbl,
-							 val_ptr->key);
+			match_ptr = _conf_hashtbl_lookup(to_tbl, val_ptr->key);
 			if (match_ptr) {	/* Found matching key */
 				if (match_ptr->data_count == 0) {
 					_conf_hashtbl_swap_data(val_ptr,
@@ -1337,25 +1297,25 @@ void s_p_hashtbl_merge(s_p_hashtbl_t *to_hashtbl, s_p_hashtbl_t *from_hashtbl)
 			} else {	/* No match, move record */
 				*val_pptr = val_ptr->next;
 				val_ptr->next = NULL;
-				_conf_hashtbl_insert(to_hashtbl, val_ptr);
+				_conf_hashtbl_insert(to_tbl, val_ptr);
 				val_ptr = *val_pptr;
 			}
 		}
 	}
 }
 
-void s_p_hashtbl_merge_override(s_p_hashtbl_t *to_hashtbl,
-				s_p_hashtbl_t *from_hashtbl)
+void s_p_hashtbl_merge_override(s_p_hashtbl_t *to_tbl,
+				s_p_hashtbl_t *from_tbl)
 {
 	int i;
 	s_p_values_t **val_pptr, *val_ptr, *match_ptr;
 
-	if (!to_hashtbl || !from_hashtbl)
+	if (!to_tbl || !from_tbl)
 		return;
 
 	for (i = 0; i < CONF_HASH_LEN; i++) {
-		val_pptr = &from_hashtbl[i];
-		val_ptr = from_hashtbl[i];
+		val_pptr = &from_tbl->hash[i];
+		val_ptr = from_tbl->hash[i];
 		while (val_ptr) {
 			if (val_ptr->data_count == 0) {
 				/* No data in from_hashtbl record to move.
@@ -1364,8 +1324,7 @@ void s_p_hashtbl_merge_override(s_p_hashtbl_t *to_hashtbl,
 				val_ptr = val_ptr->next;
 				continue;
 			}
-			match_ptr = _conf_hashtbl_lookup(to_hashtbl,
-							 val_ptr->key);
+			match_ptr = _conf_hashtbl_lookup(to_tbl, val_ptr->key);
 			if (match_ptr) {	/* Found matching key */
 				_conf_hashtbl_swap_data(val_ptr, match_ptr);
 				val_pptr = &val_ptr->next;
@@ -1373,29 +1332,29 @@ void s_p_hashtbl_merge_override(s_p_hashtbl_t *to_hashtbl,
 			} else {	/* No match, move record */
 				*val_pptr = val_ptr->next;
 				val_ptr->next = NULL;
-				_conf_hashtbl_insert(to_hashtbl, val_ptr);
+				_conf_hashtbl_insert(to_tbl, val_ptr);
 				val_ptr = *val_pptr;
 			}
 		}
 	}
 }
 
-void s_p_hashtbl_merge_keys(s_p_hashtbl_t *to_hashtbl,
-			    s_p_hashtbl_t *from_hashtbl)
+void s_p_hashtbl_merge_keys(s_p_hashtbl_t *to_tbl,
+			    s_p_hashtbl_t *from_tbl)
 {
 	int i;
 	_expline_values_t* f_expline;
 	_expline_values_t* t_expline;
 	s_p_values_t **pp, *p, *match_ptr;
 
-	if (!to_hashtbl || !from_hashtbl)
+	if (!to_tbl || !from_tbl)
 		return;
 
 	for (i = 0; i < CONF_HASH_LEN; i++) {
-		pp = &from_hashtbl[i];
-		p = from_hashtbl[i];
+		pp = &from_tbl->hash[i];
+		p = from_tbl->hash[i];
 		while (p) {
-			match_ptr = _conf_hashtbl_lookup(to_hashtbl, p->key);
+			match_ptr = _conf_hashtbl_lookup(to_tbl, p->key);
 			if (match_ptr) {	/* Found matching key */
 				if (match_ptr->type == p->type &&
 				    (p->type == S_P_LINE ||
@@ -1418,7 +1377,7 @@ void s_p_hashtbl_merge_keys(s_p_hashtbl_t *to_hashtbl,
 			} else {	/* No match, move record */
 				*pp = p->next;
 				p->next = NULL;
-				_conf_hashtbl_insert(to_hashtbl, p);
+				_conf_hashtbl_insert(to_tbl, p);
 				p = *pp;
 			}
 		}
@@ -1477,19 +1436,16 @@ static void _parse_line_expanded_destroyer(void* data)
  * S_P_PLAIN_STRING specifying not be considered as an expandable string
  * is thus just converted to a real S_P_STRING and not an hostlist.
  */
-static s_p_hashtbl_t* _parse_expline_adapt_table(const s_p_hashtbl_t* hashtbl)
+static s_p_hashtbl_t *_parse_expline_adapt_table(const s_p_hashtbl_t *tbl)
 {
-	s_p_hashtbl_t* to_hashtbl = NULL;
-	s_p_values_t *val_ptr,* val_copy;
-	int i;
+	s_p_hashtbl_t *to_tbl = xmalloc(sizeof(*to_tbl));
 
-	xassert(hashtbl);
+	xassert(tbl);
 
-	to_hashtbl = xcalloc(CONF_HASH_LEN, sizeof(s_p_values_t *));
-
-	for (i = 0; i < CONF_HASH_LEN; ++i) {
-		for (val_ptr = hashtbl[i]; val_ptr; val_ptr = val_ptr->next) {
-			val_copy = xmalloc(sizeof(s_p_values_t));
+	for (int i = 0; i < CONF_HASH_LEN; ++i) {
+		for (s_p_values_t *val_ptr = tbl->hash[i];
+		     val_ptr; val_ptr = val_ptr->next) {
+			s_p_values_t *val_copy = xmalloc(sizeof(*val_copy));
 			val_copy->key = xstrdup(val_ptr->key);
 			val_copy->operator = val_ptr->operator;
 			if (val_ptr->type == S_P_PLAIN_STRING) {
@@ -1501,27 +1457,34 @@ static s_p_hashtbl_t* _parse_expline_adapt_table(const s_p_hashtbl_t* hashtbl)
 				val_copy->destroy =
 					_parse_line_expanded_destroyer;
 			}
-			_conf_hashtbl_insert(to_hashtbl, val_copy);
+			_conf_hashtbl_insert(to_tbl, val_copy);
 		}
 	}
 
-	return to_hashtbl;
+	/*
+	 * We cannot copy a regex since a regfree() on either
+	 * the original or the copy can affect the other one.
+	 */
+	if (regcomp(&to_tbl->keyvalue_re, keyvalue_pattern, REG_EXTENDED))
+		fatal("keyvalue regex compilation failed");
+
+	return to_tbl;
 }
 
 /*
  * walk down a tree of s_p_values_t converting every S_P_PLAIN_STRING
  * element to an S_P_STRING element.
  */
-static void _hashtbl_plain_to_string(s_p_hashtbl_t* hashtbl)
+static void _hashtbl_plain_to_string(s_p_hashtbl_t *tbl)
 {
 	_expline_values_t* v_data;
 	s_p_values_t *p;
 	int i, j;
 
-	xassert(hashtbl);
+	xassert(tbl);
 
 	for (i = 0; i < CONF_HASH_LEN; ++i) {
-		for (p = hashtbl[i]; p; p = p->next) {
+		for (p = tbl->hash[i]; p; p = p->next) {
 			if (p->type == S_P_PLAIN_STRING) {
 				p->type = S_P_STRING;
 			} else if (p->type == S_P_LINE
@@ -1669,7 +1632,7 @@ int s_p_parse_line_expanded(const s_p_hashtbl_t *hashtbl,
 			    const char *line, char **leftover)
 {
 	int i, status;
-	s_p_hashtbl_t* strhashtbl = NULL;
+	s_p_hashtbl_t* strtbl = NULL;
 	s_p_hashtbl_t** tables = NULL;
 	int tables_count = 0;
 	hostlist_t value_hl = NULL;
@@ -1679,7 +1642,7 @@ int s_p_parse_line_expanded(const s_p_hashtbl_t *hashtbl,
 	status = SLURM_ERROR;
 
 	/* create the adapted temporary hash table used for expansion */
-	strhashtbl = _parse_expline_adapt_table(hashtbl);
+	strtbl = _parse_expline_adapt_table(hashtbl);
 
 	/* create hostlist and one iterator over it, since we will walk
 	 * through the list for each new attribute to create final expanded
@@ -1692,7 +1655,7 @@ int s_p_parse_line_expanded(const s_p_hashtbl_t *hashtbl,
 	/* populate the temporary expansion hash table, it will map the
 	 * different config elements to either an hostlist (through S_P_POINTER) or
 	 * to an S_P_STRING (for original element of type S_P_PLAIN_STRING) */
-	if (!s_p_parse_line(strhashtbl, *leftover, leftover)) {
+	if (!s_p_parse_line(strtbl, *leftover, leftover)) {
 		error("Unable to parse line %s", *leftover);
 		goto cleanup;
 	}
@@ -1710,10 +1673,7 @@ int s_p_parse_line_expanded(const s_p_hashtbl_t *hashtbl,
 	for (i = 0; i < tables_count; i++) {
 		free(value_str);
 		value_str = hostlist_shift(value_hl);
-		tables[i] = _hashtbl_copy_keys(hashtbl,
-					       false, S_P_IGNORE,
-					       false, NULL,
-					       false, NULL);
+		tables[i] = _hashtbl_copy_keys(hashtbl);
 		_hashtbl_plain_to_string(tables[i]);
 		if (!s_p_parse_pair(tables[i], key, value_str)) {
 			error("Error parsing '%s = %s', most left part of the"
@@ -1726,7 +1686,7 @@ int s_p_parse_line_expanded(const s_p_hashtbl_t *hashtbl,
 	 * conversions and handlers. This is done at the same time as storing
 	 * the parsed attribute values with s_p_parse_pair */
 	for (i = 0; i < CONF_HASH_LEN; ++i) {
-		for (attr = strhashtbl[i]; attr; attr = attr->next) {
+		for (attr = strtbl->hash[i]; attr; attr = attr->next) {
 			if (!_parse_expline_doexpand(tables,
 						     tables_count,
 						     attr)) {
@@ -1742,8 +1702,8 @@ cleanup:
 		free(value_str);
 	if (value_hl)
 		hostlist_destroy(value_hl);
-	if (strhashtbl)
-		s_p_hashtbl_destroy(strhashtbl);
+	if (strtbl)
+		s_p_hashtbl_destroy(strtbl);
 
 	if (status == SLURM_ERROR && tables) {
 		for (i = 0; i < tables_count; i++)
@@ -2235,7 +2195,7 @@ extern s_p_hashtbl_t *s_p_unpack_hashtbl(Buf buffer)
 
 	safe_unpack32(&cnt, buffer);
 
-	hashtbl = xcalloc(CONF_HASH_LEN, sizeof(s_p_values_t *));
+	hashtbl = xmalloc(sizeof(*hashtbl));
 
 	for (i = 0; i < cnt; i++) {
 		value = xmalloc(sizeof(s_p_values_t));
@@ -2319,14 +2279,13 @@ extern void transfer_s_p_options(s_p_options_t **full_options,
 				 s_p_options_t *options,
 				 int *full_options_cnt)
 {
-	s_p_options_t *op = NULL;
 	s_p_options_t *full_options_ptr;
 	int cnt = *full_options_cnt;
 
 	xassert(full_options);
 
-	for (op = options; op->key != NULL; op++, cnt++) {
-		xrealloc(*full_options, ((cnt + 1) * sizeof(s_p_options_t)));
+	for (s_p_options_t *op = options; op->key; op++, cnt++) {
+		xrecalloc(*full_options, cnt + 1, sizeof(s_p_options_t));
 		full_options_ptr = &(*full_options)[cnt];
 		memcpy(full_options_ptr, op, sizeof(s_p_options_t));
 		full_options_ptr->key = xstrdup(op->key);

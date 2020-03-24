@@ -50,15 +50,9 @@ static char    *acct_storage_backup_host = NULL;
 static char    *acct_storage_host = NULL;
 static char    *acct_storage_loc  = NULL;
 static char    *acct_storage_pass = NULL;
-static uint32_t acct_storage_port;
-static char    *acct_storage_type = NULL;
 static char    *acct_storage_user = NULL;
 static char    *auth_type = NULL;
-static uint16_t msg_timeout;
-static char    *plugin_dir = NULL;
 static uint16_t private_data;
-static uint32_t slurm_user_id;
-static uint16_t tcp_timeout;
 static uint16_t track_wckey;
 
 static List dbd_config_list = NULL;
@@ -99,15 +93,9 @@ static void _load_slurm_config(void)
 	acct_storage_host = slurm_get_accounting_storage_host();
 	acct_storage_loc  = slurm_get_accounting_storage_loc();
 	acct_storage_pass = slurm_get_accounting_storage_pass();
-	acct_storage_port = slurm_get_accounting_storage_port();
-	acct_storage_type = slurm_get_accounting_storage_type();
 	acct_storage_user = slurm_get_accounting_storage_user();
 	auth_type = slurm_get_auth_type();
-	msg_timeout = slurm_get_msg_timeout();
-	plugin_dir = slurm_get_plugin_dir();
 	private_data = slurm_get_private_data();
-	slurm_user_id = slurm_get_slurm_user_id();
-	tcp_timeout = slurm_get_tcp_timeout();
 	track_wckey = slurm_get_track_wckey();
 }
 
@@ -117,10 +105,8 @@ static void _free_slurm_config(void)
 	xfree(acct_storage_host);
 	xfree(acct_storage_loc);
 	xfree(acct_storage_pass);
-	xfree(acct_storage_type);
 	xfree(acct_storage_user);
 	xfree(auth_type);
-	xfree(plugin_dir);
 }
 
 static void _print_slurm_config(void)
@@ -134,19 +120,22 @@ static void _print_slurm_config(void)
 	printf("AccountingStorageHost  = %s\n", acct_storage_host);
 	printf("AccountingStorageLoc   = %s\n", acct_storage_loc);
 	printf("AccountingStoragePass  = %s\n", acct_storage_pass);
-	printf("AccountingStoragePort  = %u\n", acct_storage_port);
-	printf("AccountingStorageType  = %s\n", acct_storage_type);
+	printf("AccountingStoragePort  = %u\n",
+	       slurm_conf.accounting_storage_port);
+	printf("AccountingStorageType  = %s\n",
+	       slurm_conf.accounting_storage_type);
 	printf("AccountingStorageUser  = %s\n", acct_storage_user);
 	printf("AuthType               = %s\n", auth_type);
-	printf("MessageTimeout         = %u sec\n", msg_timeout);
-	printf("PluginDir              = %s\n", plugin_dir);
+	printf("MessageTimeout         = %u sec\n", slurm_conf.msg_timeout);
+	printf("PluginDir              = %s\n", slurm_conf.plugindir);
 	private_data_string(private_data, tmp_str, sizeof(tmp_str));
 	printf("PrivateData            = %s\n", tmp_str);
-	user_name = uid_to_string_cached(slurm_user_id);
-	printf("SlurmUserId            = %s(%u)\n", user_name, slurm_user_id);
+	user_name = uid_to_string_cached(slurm_conf.slurm_user_id);
+	printf("SlurmUserId            = %s(%u)\n",
+	       user_name, slurm_conf.slurm_user_id);
 	printf("SLURM_CONF             = %s\n", default_slurm_config_file);
 	printf("SLURM_VERSION          = %s\n", SLURM_VERSION_STRING);
-	printf("TCPTimeout             = %u sec\n", tcp_timeout);
+	printf("TCPTimeout             = %u sec\n", slurm_conf.tcp_timeout);
 	printf("TrackWCKey             = %s\n", track_wckey ? "Yes" : "No");
 }
 
@@ -247,7 +236,7 @@ static int _print_rpc_obj(void *x, void *arg)
 	return 0;
 }
 
-extern int sacctmgr_list_config(bool have_db_conn)
+extern int sacctmgr_list_config(void)
 {
 	_load_slurm_config();
 	_print_slurm_config();

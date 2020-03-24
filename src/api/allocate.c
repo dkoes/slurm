@@ -551,7 +551,7 @@ int slurm_job_will_run(job_desc_msg_t *req)
 	if (working_cluster_rec)
 		cluster_name = working_cluster_rec->name;
 	else
-		cluster_name = slurmctld_conf.cluster_name;
+		cluster_name = slurm_conf.cluster_name;
 	if (!slurm_load_federation(&ptr) &&
 	    cluster_in_federation(ptr, cluster_name))
 		rc = _fed_job_will_run(req, &will_run_resp, ptr);
@@ -796,7 +796,7 @@ extern int slurm_allocation_lookup(uint32_t jobid,
 
 	memset(&req, 0, sizeof(req));
 	req.job_id = jobid;
-	req.req_cluster  = slurmctld_conf.cluster_name;
+	req.req_cluster = slurm_conf.cluster_name;
 	slurm_msg_t_init(&req_msg);
 	slurm_msg_t_init(&resp_msg);
 	req_msg.msg_type = REQUEST_JOB_ALLOCATION_INFO;
@@ -843,7 +843,7 @@ extern int slurm_het_job_lookup(uint32_t jobid, List *info)
 
 	memset(&req, 0, sizeof(req));
 	req.job_id = jobid;
-	req.req_cluster  = slurmctld_conf.cluster_name;
+	req.req_cluster = slurm_conf.cluster_name;
 	slurm_msg_t_init(&req_msg);
 	slurm_msg_t_init(&resp_msg);
 	req_msg.msg_type = REQUEST_HET_JOB_ALLOC_INFO;
@@ -1163,12 +1163,12 @@ _handle_msg(slurm_msg_t *msg, uint16_t msg_type, void **resp)
 {
 	uid_t req_uid;
 	uid_t uid       = getuid();
-	uid_t slurm_uid = (uid_t) slurm_get_slurm_user_id();
 	int rc = 0;
 
 	req_uid = g_slurm_auth_get_uid(msg->auth_cred);
 
-	if ((req_uid != slurm_uid) && (req_uid != 0) && (req_uid != uid)) {
+	if ((req_uid != slurm_conf.slurm_user_id) && (req_uid != 0) &&
+	    (req_uid != uid)) {
 		error ("Security violation, slurm message from uid %u",
 			(unsigned int) req_uid);
 		return 0;

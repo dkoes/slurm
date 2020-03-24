@@ -1,7 +1,6 @@
 /*****************************************************************************\
  *  as_mysql_job.c - functions dealing with jobs and job steps.
  *****************************************************************************
- *
  *  Copyright (C) 2004-2007 The Regents of the University of California.
  *  Copyright (C) 2008-2010 Lawrence Livermore National Security.
  *  Produced at Lawrence Livermore National Laboratory (cf, DISCLAIMER).
@@ -260,8 +259,8 @@ static uint32_t _get_wckeyid(mysql_conn_t *mysql_conn, char **name,
 			}
 
 			if (as_mysql_add_wckeys(mysql_conn,
-						slurm_get_slurm_user_id(),
-						wckey_list)
+			                        slurm_conf.slurm_user_id,
+			                        wckey_list)
 			    == SLURM_SUCCESS)
 				acct_storage_p_commit(mysql_conn, 1);
 			/* If that worked lets get it */
@@ -381,8 +380,7 @@ extern int as_mysql_job_start(mysql_conn_t *mysql_conn, job_record_t *job_ptr)
 				       mysql_conn->cluster_name,
 				       job_table, job_ptr->job_id,
 				       submit_time, begin_time, start_time);
-		if (debug_flags & DEBUG_FLAG_DB_JOB)
-			DB_DEBUG(mysql_conn->conn, "query\n%s", query);
+		DB_DEBUG(DB_JOB, mysql_conn->conn, "query\n%s", query);
 		if (!(result =
 		      mysql_db_query_ret(mysql_conn, query, 0))) {
 			xfree(query);
@@ -433,8 +431,7 @@ extern int as_mysql_job_start(mysql_conn_t *mysql_conn, job_record_t *job_ptr)
 				       mysql_conn->cluster_name,
 				       last_ran_table, check_time,
 				       check_time, check_time);
-		if (debug_flags & DEBUG_FLAG_DB_JOB)
-			DB_DEBUG(mysql_conn->conn, "query\n%s", query);
+		DB_DEBUG(DB_JOB, mysql_conn->conn, "query\n%s", query);
 		rc = mysql_db_query(mysql_conn, query);
 		xfree(query);
 	} else
@@ -637,8 +634,7 @@ no_rollup_change:
 			xstrfmtcat(query, ", constraints='%s'",
 				   job_ptr->details->features);
 
-		if (debug_flags & DEBUG_FLAG_DB_JOB)
-			DB_DEBUG(mysql_conn->conn, "query\n%s", query);
+		DB_DEBUG(DB_JOB, mysql_conn->conn, "query\n%s", query);
 	try_again:
 		if (!(job_ptr->db_index = mysql_db_insert_ret_id(
 			      mysql_conn, query))) {
@@ -722,8 +718,7 @@ no_rollup_change:
 			   job_ptr->db_flags, job_ptr->state_reason_prev_db,
 			   begin_time, job_ptr->db_index);
 
-		if (debug_flags & DEBUG_FLAG_DB_JOB)
-			DB_DEBUG(mysql_conn->conn, "query\n%s", query);
+		DB_DEBUG(DB_JOB, mysql_conn->conn, "query\n%s", query);
 		rc = mysql_db_query(mysql_conn, query);
 	}
 
@@ -788,10 +783,8 @@ extern List as_mysql_modify_job(mysql_conn_t *mysql_conn, uint32_t uid,
 
 	if (!job_list || !list_count(job_list)) {
 		errno = SLURM_NO_CHANGE_IN_DATA;
-		if (debug_flags & DEBUG_FLAG_DB_JOB)
-			DB_DEBUG(mysql_conn->conn,
-				 "%s: Job(s) not found\n",
-				 __func__);
+		DB_DEBUG(DB_JOB, mysql_conn->conn, "%s: Job(s) not found\n",
+		         __func__);
 		xfree(vals);
 		FREE_NULL_LIST(job_list);
 		return NULL;
@@ -962,9 +955,8 @@ extern List as_mysql_modify_job(mysql_conn_t *mysql_conn, uint32_t uid,
 
 
 				xfree(use_table);
-				if (debug_flags & DEBUG_FLAG_DB_JOB)
-					DB_DEBUG(mysql_conn->conn,
-						 "query\n%s", query);
+				DB_DEBUG(DB_JOB, mysql_conn->conn, "query\n%s",
+				         query);
 				rc = mysql_db_query(mysql_conn, query);
 				xfree(query);
 				if (rc != SLURM_SUCCESS)
@@ -1052,8 +1044,7 @@ extern int as_mysql_job_complete(mysql_conn_t *mysql_conn,
 				       mysql_conn->cluster_name,
 				       last_ran_table, end_time,
 				       end_time, end_time);
-		if (debug_flags & DEBUG_FLAG_DB_JOB)
-			DB_DEBUG(mysql_conn->conn, "query\n%s", query);
+		DB_DEBUG(DB_JOB, mysql_conn->conn, "query\n%s", query);
 		(void) mysql_db_query(mysql_conn, query);
 		xfree(query);
 	} else
@@ -1126,8 +1117,7 @@ extern int as_mysql_job_complete(mysql_conn_t *mysql_conn,
 		   exit_code, job_ptr->requid,
 		   job_ptr->db_index);
 
-	if (debug_flags & DEBUG_FLAG_DB_JOB)
-		DB_DEBUG(mysql_conn->conn, "query\n%s", query);
+	DB_DEBUG(DB_JOB, mysql_conn->conn, "query\n%s", query);
 	rc = mysql_db_query(mysql_conn, query);
 	xfree(query);
 
@@ -1274,8 +1264,7 @@ extern int as_mysql_step_start(mysql_conn_t *mysql_conn,
 		node_list, node_inx, task_dist, step_ptr->cpu_freq_max,
 		step_ptr->cpu_freq_min, step_ptr->cpu_freq_gov,
 		step_ptr->tres_alloc_str);
-	if (debug_flags & DEBUG_FLAG_DB_STEP)
-		DB_DEBUG(mysql_conn->conn, "query\n%s", query);
+	DB_DEBUG(DB_STEP, mysql_conn->conn, "query\n%s", query);
 	rc = mysql_db_query(mysql_conn, query);
 	xfree(query);
 
@@ -1523,8 +1512,7 @@ extern int as_mysql_step_complete(mysql_conn_t *mysql_conn,
 	xstrfmtcat(query,
 		   " where job_db_inx=%"PRIu64" and id_step=%d",
 		   step_ptr->job_ptr->db_index, step_ptr->step_id);
-	if (debug_flags & DEBUG_FLAG_DB_STEP)
-		DB_DEBUG(mysql_conn->conn, "query\n%s", query);
+	DB_DEBUG(DB_STEP, mysql_conn->conn, "query\n%s", query);
 	rc = mysql_db_query(mysql_conn, query);
 	xfree(query);
 
@@ -1536,8 +1524,7 @@ extern int as_mysql_step_complete(mysql_conn_t *mysql_conn,
 			mysql_conn->cluster_name, job_table,
 			step_ptr->job_ptr->tres_alloc_str,
 			step_ptr->job_ptr->db_index);
-		if (debug_flags & DEBUG_FLAG_DB_STEP)
-			DB_DEBUG(mysql_conn->conn, "query\n%s", query);
+		DB_DEBUG(DB_STEP, mysql_conn->conn, "query\n%s", query);
 		rc = mysql_db_query(mysql_conn, query);
 		xfree(query);
 	}
@@ -1619,8 +1606,7 @@ extern int as_mysql_suspend(mysql_conn_t *mysql_conn, uint64_t old_db_inx,
 			   "job_db_inx=%"PRIu64" && time_end=0;",
 			   mysql_conn->cluster_name, suspend_table,
 			   (int)job_ptr->suspend_time, job_ptr->db_index);
-	if (debug_flags & DEBUG_FLAG_DB_JOB)
-		DB_DEBUG(mysql_conn->conn, "query\n%s", query);
+	DB_DEBUG(DB_JOB, mysql_conn->conn, "query\n%s", query);
 
 	rc = mysql_db_query(mysql_conn, query);
 
@@ -1661,8 +1647,7 @@ extern int as_mysql_flush_jobs_on_cluster(
 		"select distinct t1.job_db_inx, t1.state from \"%s_%s\" "
 		"as t1 where t1.time_end=0;",
 		mysql_conn->cluster_name, job_table);
-	if (debug_flags & DEBUG_FLAG_DB_JOB)
-		DB_DEBUG(mysql_conn->conn, "query\n%s", query);
+	DB_DEBUG(DB_JOB, mysql_conn->conn, "query\n%s", query);
 	if (!(result =
 	      mysql_db_query_ret(mysql_conn, query, 0))) {
 		xfree(query);
@@ -1725,8 +1710,7 @@ extern int as_mysql_flush_jobs_on_cluster(
 	}
 
 	if (query) {
-		if (debug_flags & DEBUG_FLAG_DB_JOB)
-			DB_DEBUG(mysql_conn->conn, "query\n%s", query);
+		DB_DEBUG(DB_JOB, mysql_conn->conn, "query\n%s", query);
 
 		rc = mysql_db_query(mysql_conn, query);
 		xfree(query);

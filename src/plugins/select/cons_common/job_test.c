@@ -142,7 +142,7 @@ static gres_mc_data_t *_build_gres_mc_data(job_record_t *job_ptr)
 			_valid_uint16(job_mc_ptr->ntasks_per_core);
 	}
 	if ((tres_mc_ptr->ntasks_per_core == 0) &&
-	    (slurmctld_conf.select_type_param & CR_ONE_TASK_PER_CORE))
+	    (slurm_conf.select_type_param & CR_ONE_TASK_PER_CORE))
 		tres_mc_ptr->ntasks_per_core = 1;
 
 	return tres_mc_ptr;
@@ -324,14 +324,20 @@ static avail_res_t **_get_res_avail(job_record_t *job_ptr,
 	else
 		i_last = -2;
 	for (i = i_first; i <= i_last; i++) {
-		if (!bit_test(node_map, i))
-			continue;
-		avail_res_array[i] =
-			(*cons_common_callbacks.can_job_run_on_node)(
-				job_ptr, core_map, i,
-				s_p_n, node_usage,
-				cr_type, test_only, will_run,
-				part_core_map);
+		if (bit_test(node_map, i))
+			avail_res_array[i] =
+				(*cons_common_callbacks.can_job_run_on_node)(
+					job_ptr, core_map, i,
+					s_p_n, node_usage,
+					cr_type, test_only, will_run,
+					part_core_map);
+		/*
+		 * FIXME: This is a hack to make cons_res more bullet proof as
+		 * there are places that don't always behave correctly with a
+		 * sparce array.
+		 */
+		if (!is_cons_tres && !avail_res_array[i])
+			avail_res_array[i] = xmalloc(sizeof(avail_res_t));
 	}
 
 	return avail_res_array;
@@ -348,10 +354,10 @@ static time_t _guess_job_end(job_record_t *job_ptr, time_t now)
 	    (job_ptr->part_ptr->over_time_limit != NO_VAL16)) {
 		over_time_limit = job_ptr->part_ptr->over_time_limit;
 	} else {
-		over_time_limit = slurmctld_conf.over_time_limit;
+		over_time_limit = slurm_conf.over_time_limit;
 	}
 	if (over_time_limit == 0) {
-		end_time = job_ptr->end_time + slurmctld_conf.kill_wait;
+		end_time = job_ptr->end_time + slurm_conf.kill_wait;
 	} else if (over_time_limit == INFINITE16) {
 		/* No idea when the job might end, this is just a guess */
 		if (job_ptr->time_limit && (job_ptr->time_limit != NO_VAL) &&
@@ -361,7 +367,7 @@ static time_t _guess_job_end(job_record_t *job_ptr, time_t now)
 			end_time = now + (365 * 24 * 60 * 60);	/* one year */
 		}
 	} else {
-		end_time = job_ptr->end_time + slurmctld_conf.kill_wait +
+		end_time = job_ptr->end_time + slurm_conf.kill_wait +
 			(over_time_limit  * 60);
 	}
 	if (end_time <= now)
@@ -517,19 +523,21 @@ static avail_res_t **_select_nodes(job_record_t *job_ptr, uint32_t min_nodes,
 
 	/* If successful, sync up the avail_core with the node_map */
 	if (rc == SLURM_SUCCESS) {
+		int i_first, i_last, n, start;
+
+		i_first = bit_ffs(node_bitmap);
+		if (i_first != -1)
+			i_last = bit_fls(node_bitmap);
+		else
+			i_last = -2;
+
 		if (is_cons_tres) {
-			for (n = 0; n < select_node_cnt; n++) {
+			for (n = i_first; n < i_last; n++) {
 				if (!avail_res_array[n] ||
 				    !bit_test(node_bitmap, n))
 					FREE_NULL_BITMAP(avail_core[n]);
 			}
-		} else {
-			uint32_t i_first, i_last, n, start;
-			i_first = bit_ffs(node_bitmap);
-			if (i_first != -1)
-				i_last = bit_fls(node_bitmap);
-			else
-				i_last = -2;
+		} else if (i_last != -2) {
 			start = 0;
 			for (n = i_first; n < i_last; n++) {
 				if (!avail_res_array[n] ||
@@ -2263,11 +2271,10 @@ extern int common_job_test(job_record_t *job_ptr, bitstr_t *node_bitmap,
 			   List *preemptee_job_list,
 			   bitstr_t **exc_cores)
 {
-	int i, rc = EINVAL;
+	int rc = EINVAL;
 	uint16_t job_node_req;
-	char tmp[128];
 
-	if (!(slurmctld_conf.conf_flags & CTL_CONF_ASRU))
+	if (!(slurm_conf.conf_flags & CTL_CONF_ASRU))
 		job_ptr->details->core_spec = NO_VAL16;
 	if ((job_ptr->details->core_spec != NO_VAL16) &&
 	    (job_ptr->details->whole_node != 1)) {
@@ -2283,7 +2290,6 @@ extern int common_job_test(job_record_t *job_ptr, bitstr_t *node_bitmap,
 
 	if (select_debug_flags & DEBUG_FLAG_SELECT_TYPE) {
 		char *node_mode = "Unknown", *alloc_mode = "Unknown";
-		char *core_list = NULL, *node_list, *sep = "";
 		if (job_node_req == NODE_CR_RESERVED)
 			node_mode = "Exclusive";
 		else if (job_node_req == NODE_CR_AVAILABLE)
@@ -2298,23 +2304,9 @@ extern int common_job_test(job_record_t *job_ptr, bitstr_t *node_bitmap,
 			alloc_mode = "Run_Now";
 		info("%s: %s: %pJ node_mode:%s alloc_mode:%s",
 		     plugin_type, __func__, job_ptr, node_mode, alloc_mode);
-		if (exc_cores) {
-			for (i = 0; i < core_array_size; i++) {
-				if (!exc_cores[i])
-					continue;
-				bit_fmt(tmp, sizeof(tmp), exc_cores[i]);
-				xstrfmtcat(core_list, "%snode[%d]:%s", sep, i,
-					   tmp);
-				sep = ",";
-			}
-		} else {
-			core_list = xstrdup("NONE");
-		}
-		node_list = bitmap2node_name(node_bitmap);
-		info("%s: %s: node_list:%s exc_cores:%s", plugin_type, __func__,
-		     node_list, core_list);
-		xfree(node_list);
-		xfree(core_list);
+
+		core_array_log("node_list & exc_cores", node_bitmap, exc_cores);
+
 		info("%s: %s: nodes: min:%u max:%u requested:%u avail:%u",
 		     plugin_type, __func__, min_nodes, max_nodes, req_nodes,
 		     bit_set_count(node_bitmap));

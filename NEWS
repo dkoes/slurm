@@ -1,10 +1,59 @@
 This file describes changes in recent versions of Slurm. It primarily
 documents those changes that are of interest to users and administrators.
 
+* Changes in Slurm 20.11.0pre1
+==============================
+ -- Fix corner case issue with interrupted resource allocation requests.
+ -- Pack all gres information in the slurmd to send to the stepd to help
+    reduce calls in the stepd to read gres.conf.
+ -- The example systemd unit files have been changed to the "simple" type of
+    operation, and the daemon will now run in the foreground within systemd
+    instead of daemonizing itself.
+
+* Changes in Slurm 20.02.1
+==========================
+ -- Improve job state reason for jobs hitting partition_job_depth.
+ -- Speed up testing of singleton dependencies.
+ -- Fix negative loop bound in cons_tres.
+ -- srun - capture the MPI plugin return code from mpi_hook_client_fini() and
+    use as final return code for step failure.
+ -- Fix segfault in cli_filter/lua.
+ -- Fix --gpu-bind=map_gpu reusability if tasks > elements.
+ -- Make sure config_flags on a gres are sent to the slurmctld on node
+    registration.
+ -- Prolog/Epilog - Fix missing GPU information.
+ -- Fix segfault when using config parser for expanded lines.
+ -- Fix bit overlap test function.
+ -- Don't accrue time if job begin time is in the future.
+ -- Remove accrue time when updating a job start/eligible time to the future.
+ -- Fix regression in 20.02.0 that broke --depend=expand.
+ -- Reset begin time on job release if it's not in the future.
+ -- Fix for recovering burst buffers when using high-availability.
+ -- Fix invalid read due to freeing an incorrectly allocated env array.
+
 * Changes in Slurm 20.02.0
 ==========================
  -- Fix minor memory leak in slurmd on reconfig.
  -- Fix invalid ptr reference when rolling up data in the database.
+ -- Change shtml2html.py to require python3 for RHEL8 support, and match
+    man2html.py.
+ -- slurm.spec - override "hardening" linker flags to ensure RHEL8 builds
+    in a usable manner.
+ -- Fix type mismatches in the perl API.
+ -- Prevent use of uninitialized slurmctld_diag_stats.
+ -- Fixed various Coverity issues.
+ -- Only show warning about root-less topology in daemons.
+ -- Fix accounting of jobs in IGNORE_JOBS reservations.
+ -- Fix issue with batch steps state not loading correctly when upgrading from
+    19.05.
+ -- Deprecate max_depend_depth in SchedulerParameters and move it to
+    DependencyParameters.
+ -- Silence erroneous error on slurmctld upgrade when loading federation state.
+ -- Break infinite loop in cons_tres dealing with incorrect tasks per tres
+    request resulting in slurmctld hang.
+ -- Improve handling of --gpus-per-task to make sure appropriate number of GPUs
+    is assigned to job.
+ -- Fix seg fault on cons_res when requesting --spread-job.
 
 * Changes in Slurm 20.02.0rc1
 =============================
@@ -140,6 +189,11 @@ documents those changes that are of interest to users and administrators.
  -- sched/backfill - fix options parsing when bf_hetjob_prio enabled.
  -- Fix for --gpu-bind when no gpus requested.
  -- Fix sshare -l crash with large values.
+ -- Fix printing NULL job and step pointers.
+ -- Break infinite loop in cons_tres dealing with incorrect tasks per tres
+    request resulting in slurmctld hang.
+ -- Improve handling of --gpus-per-task to make sure appropriate number of GPUs
+    is assigned to job.
 
 * Changes in Slurm 19.05.5
 ==========================

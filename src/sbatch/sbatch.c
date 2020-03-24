@@ -324,7 +324,7 @@ int main(int argc, char **argv)
 
 	/* run cli_filter post_submit */
 	for (i = 0; i < het_job_limit; i++)
-		cli_filter_plugin_post_submit(i, resp->job_id, NO_VAL);
+		cli_filter_g_post_submit(i, resp->job_id, NO_VAL);
 
 	if (!quiet) {
 		if (!sbopt.parsable) {
@@ -422,7 +422,7 @@ static int _job_wait(uint32_t job_id)
 		 * run, complete quickly, and be purged from slurmctld before
 		 * we've woken up and queried the job again.
 		 */
-		if ((sleep_time < (slurmctld_conf.min_job_age / 2)) &&
+		if ((sleep_time < (slurm_conf.min_job_age / 2)) &&
 		    (sleep_time < MAX_WAIT_SLEEP_TIME))
 			sleep_time *= 4;
 

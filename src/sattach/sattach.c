@@ -51,6 +51,7 @@
 #include "src/common/hostlist.h"
 #include "src/common/macros.h"
 #include "src/common/net.h"
+#include "src/common/read_config.h"
 #include "src/common/slurm_auth.h"
 #include "src/common/slurm_cred.h"
 #include "src/common/slurm_protocol_api.h"
@@ -389,13 +390,11 @@ static int _attach_to_tasks(uint32_t jobid,
 {
 	slurm_msg_t msg;
 	List nodes_resp = NULL;
-	int timeout;
+	int timeout = slurm_conf.msg_timeout * 1000; /* sec to msec */
 	reattach_tasks_request_msg_t reattach_msg;
 	char *hosts;
 
 	slurm_msg_t_init(&msg);
-
-	timeout = slurm_get_msg_timeout() * 1000; /* sec to msec */
 
 	reattach_msg.job_id = jobid;
 	reattach_msg.job_step_id = stepid;
@@ -568,20 +567,14 @@ _exit_handler(message_thread_state_t *mts, slurm_msg_t *exit_msg)
 static void
 _handle_msg(void *arg, slurm_msg_t *msg)
 {
-	static uid_t slurm_uid;
-	static bool slurm_uid_set = false;
 	message_thread_state_t *mts = (message_thread_state_t *)arg;
 	uid_t req_uid;
 	uid_t uid = getuid();
 
 	req_uid = g_slurm_auth_get_uid(msg->auth_cred);
 
-	if (!slurm_uid_set) {
-		slurm_uid = slurm_get_slurm_user_id();
-		slurm_uid_set = true;
-	}
-
-	if ((req_uid != slurm_uid) && (req_uid != 0) && (req_uid != uid)) {
+	if ((req_uid != slurm_conf.slurm_user_id) && (req_uid != 0) &&
+	    (req_uid != uid)) {
 		error ("Security violation, slurm message from uid %u",
 		       (unsigned int) req_uid);
 		return;

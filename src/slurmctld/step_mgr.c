@@ -256,7 +256,7 @@ static void _internal_step_complete(job_record_t *job_ptr,
 	struct jobacctinfo *jobacct = (struct jobacctinfo *)step_ptr->jobacct;
 	bool add_energy = true;
 
-	if ((slurmctld_conf.prolog_flags & PROLOG_FLAG_CONTAIN) &&
+	if ((slurm_conf.prolog_flags & PROLOG_FLAG_CONTAIN) &&
 	    (step_ptr->step_id != SLURM_EXTERN_CONT))
 		add_energy = false;
 
@@ -462,12 +462,9 @@ dump_step_desc(job_step_create_request_msg_t *step_spec)
 		mem_type   = "cpu";
 	}
 
-	if (slurmctld_conf.debug_flags & DEBUG_FLAG_CPU_FREQ) {
-		info("StepDesc: user_id=%u JobId=%u cpu_freq_gov=%u cpu_freq_max=%u cpu_freq_min=%u",
-		     step_spec->user_id, step_spec->job_id,
-		     step_spec->cpu_freq_gov, step_spec->cpu_freq_max,
-		     step_spec->cpu_freq_min);
-	}
+	log_flag(CPU_FREQ, "StepDesc: user_id=%u JobId=%u cpu_freq_gov=%u cpu_freq_max=%u cpu_freq_min=%u",
+		 step_spec->user_id, step_spec->job_id, step_spec->cpu_freq_gov,
+		 step_spec->cpu_freq_max, step_spec->cpu_freq_min);
 	debug3("StepDesc: user_id=%u JobId=%u StepId=%u node_count=%u-%u cpu_count=%u num_tasks=%u",
 	       step_spec->user_id, step_spec->job_id, step_spec->step_id,
 	       step_spec->min_nodes, step_spec->max_nodes,
@@ -1408,10 +1405,8 @@ static bitstr_t *_pick_step_nodes(job_record_t *job_ptr,
 
 	if (step_spec->node_list) {
 		bitstr_t *selected_nodes = NULL;
-		if (slurmctld_conf.debug_flags & DEBUG_FLAG_STEPS) {
-			info("%s: selected nodelist is %s", __func__,
-			     step_spec->node_list);
-		}
+		log_flag(STEPS, "%s: selected nodelist is %s",
+			 __func__, step_spec->node_list);
 		error_code = node_name2bitmap(step_spec->node_list, false,
 					      &selected_nodes);
 		if (error_code) {
@@ -1520,7 +1515,7 @@ static bitstr_t *_pick_step_nodes(job_record_t *job_ptr,
 			}
 
 			bit_or(nodes_idle, step_ptr->step_node_bitmap);
-			if (slurmctld_conf.debug_flags & DEBUG_FLAG_STEPS) {
+			if (slurm_conf.debug_flags & DEBUG_FLAG_STEPS) {
 				char *temp;
 				temp = bitmap2node_name(step_ptr->
 							step_node_bitmap);
@@ -1534,7 +1529,7 @@ static bitstr_t *_pick_step_nodes(job_record_t *job_ptr,
 		bit_and(nodes_idle, nodes_avail);
 	}
 
-	if (slurmctld_conf.debug_flags & DEBUG_FLAG_STEPS) {
+	if (slurm_conf.debug_flags & DEBUG_FLAG_STEPS) {
 		char *temp1, *temp2, *temp3;
 		temp1 = bitmap2node_name(nodes_avail);
 		temp2 = bitmap2node_name(nodes_idle);
@@ -1592,10 +1587,8 @@ static bitstr_t *_pick_step_nodes(job_record_t *job_ptr,
 
 		}
 		nodes_picked_cnt = bit_set_count(nodes_picked);
-		if (slurmctld_conf.debug_flags & DEBUG_FLAG_STEPS) {
-			verbose("%s: step picked %d of %u nodes", __func__,
-				nodes_picked_cnt, step_spec->min_nodes);
-		}
+		log_flag(STEPS, "%s: step picked %d of %u nodes",
+			 __func__, nodes_picked_cnt, step_spec->min_nodes);
 		if (nodes_idle)
 			node_avail_cnt = bit_set_count(nodes_idle);
 		else
@@ -2001,14 +1994,12 @@ extern void step_alloc_lps(step_record_t *step_ptr)
 					 step_ptr->step_layout->
 					 tasks[step_node_inx]);
 		}
-		if (slurmctld_conf.debug_flags & DEBUG_FLAG_CPU_BIND)
+		if (slurm_conf.debug_flags & DEBUG_FLAG_CPU_BIND)
 			_dump_step_layout(step_ptr);
-		if (slurmctld_conf.debug_flags & DEBUG_FLAG_STEPS) {
-			info("step alloc on job node %d (%s) used %u of %u CPUs",
-			     job_node_inx, node_record_table_ptr[i_node].name,
-			     job_resrcs_ptr->cpus_used[job_node_inx],
-			     job_resrcs_ptr->cpus[job_node_inx]);
-		}
+		log_flag(STEPS, "step alloc on job node %d (%s) used %u of %u CPUs",
+			 job_node_inx, node_record_table_ptr[i_node].name,
+			 job_resrcs_ptr->cpus_used[job_node_inx],
+			 job_resrcs_ptr->cpus[job_node_inx]);
 		if (step_node_inx == (step_ptr->step_layout->node_cnt - 1))
 			break;
 	}
@@ -2120,12 +2111,10 @@ static void _step_dealloc_lps(step_record_t *step_ptr)
 				job_resrcs_ptr->memory_used[job_node_inx] = 0;
 			}
 		}
-		if (slurmctld_conf.debug_flags & DEBUG_FLAG_STEPS) {
-			info("step dealloc on job node %d (%s) used: %u of %u CPUs",
-			     job_node_inx, node_record_table_ptr[i_node].name,
-			     job_resrcs_ptr->cpus_used[job_node_inx],
-			     job_resrcs_ptr->cpus[job_node_inx]);
-		}
+		log_flag(STEPS, "step dealloc on job node %d (%s) used: %u of %u CPUs",
+			 job_node_inx, node_record_table_ptr[i_node].name,
+			 job_resrcs_ptr->cpus_used[job_node_inx],
+			 job_resrcs_ptr->cpus[job_node_inx]);
 		if (step_node_inx == (step_ptr->step_layout->node_cnt - 1))
 			break;
 	}
@@ -2267,7 +2256,7 @@ static void _set_def_cpu_bind(job_record_t *job_ptr)
 
 	/* Use global default from TaskPluginParams */
 	job_ptr->details->cpu_bind_type = bind_bits |
-					  slurmctld_conf.task_plugin_param;
+	                                  slurm_conf.task_plugin_param;
 	return;
 }
 
@@ -2453,7 +2442,7 @@ extern int step_create(job_step_create_request_msg_t *step_specs,
 	    _test_strlen(step_specs->network, "network", 1024))
 		return ESLURM_PATHNAME_TOO_LONG;
 
-	if (job_ptr->next_step_id >= slurmctld_conf.max_step_cnt)
+	if (job_ptr->next_step_id >= slurm_conf.max_step_cnt)
 		return ESLURM_STEP_LIMIT;
 
 	/* if the overcommit flag is checked, we 0 set cpu_count=0
@@ -2522,7 +2511,7 @@ extern int step_create(job_step_create_request_msg_t *step_specs,
 			step_specs->num_tasks = node_count;
 	}
 
-	max_tasks = node_count * slurmctld_conf.max_tasks_per_node;
+	max_tasks = node_count * slurm_conf.max_tasks_per_node;
 	if (step_specs->num_tasks > max_tasks) {
 		error("step has invalid task count: %u max is %u",
 		      step_specs->num_tasks, max_tasks);
@@ -2573,10 +2562,8 @@ extern int step_create(job_step_create_request_msg_t *step_specs,
 		xfree(step_specs->node_list);
 		step_specs->node_list = xstrdup(step_node_list);
 	}
-	if (slurmctld_conf.debug_flags & DEBUG_FLAG_STEPS) {
-		verbose("Picked nodes %s when accumulating from %s",
-			step_node_list, step_specs->node_list);
-	}
+	log_flag(STEPS, "Picked nodes %s when accumulating from %s",
+		 step_node_list, step_specs->node_list);
 	step_ptr->step_node_bitmap = nodeset;
 
 	switch (step_specs->task_dist & SLURM_DIST_NODESOCKMASK) {
@@ -2654,7 +2641,7 @@ extern int step_create(job_step_create_request_msg_t *step_specs,
 	} else {
 		/* enforce partition limits if necessary */
 		if ((step_specs->time_limit > job_ptr->part_ptr->max_time) &&
-		    slurmctld_conf.enforce_part_limits) {
+		    slurm_conf.enforce_part_limits) {
 			info("%s: %pS time greater than partition's (%u > %u)",
 			     __func__, step_ptr, step_specs->time_limit,
 			     job_ptr->part_ptr->max_time);
@@ -2896,7 +2883,7 @@ extern slurm_step_layout_t *step_layout_create(step_record_t *step_ptr,
 			 * thread per core.
 			 */
 			if ((job_resrcs_ptr->whole_node != 1)
-			    && (slurmctld_conf.select_type_param
+			    && (slurm_conf.select_type_param
 				& (CR_CORE | CR_SOCKET))
 			    && (job_ptr->details &&
 				(job_ptr->details->cpu_bind_type != NO_VAL16)
@@ -3116,7 +3103,7 @@ static void _pack_ctld_job_step_info(step_record_t *step_ptr, Buf buffer,
 		}
 		pack_time(run_time, buffer);
 
-		packstr(slurmctld_conf.cluster_name, buffer);
+		packstr(slurm_conf.cluster_name, buffer);
 		if (step_ptr->job_ptr->part_ptr)
 			packstr(step_ptr->job_ptr->part_ptr->name, buffer);
 		else
@@ -3171,7 +3158,7 @@ static void _pack_ctld_job_step_info(step_record_t *step_ptr, Buf buffer,
 		}
 		pack_time(run_time, buffer);
 
-		packstr(slurmctld_conf.cluster_name, buffer);
+		packstr(slurm_conf.cluster_name, buffer);
 		if (step_ptr->job_ptr->part_ptr)
 			packstr(step_ptr->job_ptr->part_ptr->name, buffer);
 		else
@@ -3240,7 +3227,7 @@ extern int pack_ctld_job_step_info_response_msg(
 		    (job_ptr->part_ptr) && !part_is_visible(job_ptr->part_ptr, uid))
 			continue;
 
-		if ((slurmctld_conf.private_data & PRIVATE_DATA_JOBS) &&
+		if ((slurm_conf.private_data & PRIVATE_DATA_JOBS) &&
 		    (job_ptr->user_id != uid) && !validate_operator(uid) &&
 		    (((slurm_mcs_get_privatedata() == 0) &&
 		      !assoc_mgr_is_user_acct_coord(acct_db_conn, uid,
@@ -3940,7 +3927,9 @@ extern int load_step_state(job_record_t *job_ptr, Buf buffer,
 			if (switch_g_unpack_jobinfo(&switch_tmp, buffer,
 						    protocol_version))
 				goto unpack_error;
-		}
+		} else
+			step_layout = fake_slurm_step_layout_create(
+				job_ptr->batch_host, NULL, NULL, 1, 1);
 
 		/* fake out the former checkpoint plugin */
 		{
@@ -4097,7 +4086,6 @@ unpack_error:
 	FREE_NULL_LIST(gres_list);
 	bit_free(exit_node_bitmap);
 	bit_free(core_bitmap_job);
-	xfree(bit_fmt);
 	xfree(core_job);
 	if (switch_tmp)
 		switch_g_free_jobinfo(switch_tmp);
@@ -4230,7 +4218,7 @@ static bool _is_mem_resv(void)
 
 	if (!mem_resv_tested) {
 		mem_resv_tested = true;
-		if (slurmctld_conf.select_type_param & CR_MEMORY)
+		if (slurm_conf.select_type_param & CR_MEMORY)
 			mem_resv_value = true;
 	}
 

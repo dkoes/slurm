@@ -123,7 +123,7 @@ typedef enum {
  */
 #if defined (__APPLE__)
 extern slurmctld_config_t slurmctld_config __attribute__((weak_import));
-extern slurm_ctl_conf_t slurmctld_conf __attribute__((weak_import));
+extern slurm_conf_t slurm_conf __attribute__((weak_import));
 extern slurmdb_cluster_rec_t *working_cluster_rec  __attribute__((weak_import));
 extern node_record_t *node_record_table_ptr __attribute__((weak_import));
 extern int node_record_count __attribute__((weak_import));
@@ -133,7 +133,7 @@ extern void *acct_db_conn  __attribute__((weak_import));
 extern bool ignore_state_errors __attribute__((weak_import));
 #else
 slurmctld_config_t slurmctld_config;
-slurm_ctl_conf_t slurmctld_conf;
+slurm_conf_t slurm_conf;
 slurmdb_cluster_rec_t *working_cluster_rec = NULL;
 node_record_t *node_record_table_ptr;
 int node_record_count;
@@ -193,8 +193,6 @@ static void _add_to_app_list(alpsc_ev_app_t **list, int32_t *size,
 			     size_t *capacity, alpsc_ev_app_t *app);
 static void _update_app(step_record_t *step_ptr, alpsc_ev_app_state_e state);
 #endif
-
-static uint64_t debug_flags = 0;
 
 /*
  * These variables are required by the generic plugin interface.  If they
@@ -413,7 +411,7 @@ static void *_aeld_event_loop(void *args)
 		} else {
 			slurm_mutex_unlock(&aeld_mutex);
 		}
-		if (debug_flags & DEBUG_FLAG_TIME_CRAY)
+		if (slurm_conf.debug_flags & DEBUG_FLAG_TIME_CRAY)
 			END_TIMER3("_aeld_event_loop: took", 20000);
 	}
 
@@ -487,7 +485,7 @@ static void _initialize_event(alpsc_ev_app_t *event, step_record_t *step_ptr,
 	hostlist_destroy(hl);
 
 	END_TIMER;
-	if (debug_flags & DEBUG_FLAG_TIME_CRAY)
+	if (slurm_conf.debug_flags & DEBUG_FLAG_TIME_CRAY)
 		INFO_LINE("call took: %s", TIME_STR);
 
 	return;
@@ -671,7 +669,7 @@ static void _update_app(step_record_t *step_ptr, alpsc_ev_app_state_e state)
 	_free_event(&app);
 
 	END_TIMER;
-	if (debug_flags & DEBUG_FLAG_TIME_CRAY)
+	if (slurm_conf.debug_flags & DEBUG_FLAG_TIME_CRAY)
 		INFO_LINE("call took: %s", TIME_STR);
 
 	return;
@@ -864,8 +862,6 @@ extern int init ( void )
 	else
 		plugin_id = SELECT_PLUGIN_CRAY_LINEAR;
 
-	debug_flags = slurm_get_debug_flags();
-
 #if defined(HAVE_NATIVE_CRAY) && !defined(HAVE_CRAY_NETWORK)
 	/* Read and store the CCM configured partition name(s). */
 	if (running_in_slurmctld()) {
@@ -888,8 +884,8 @@ extern int init ( void )
 			      "SchedulerParameter.");
 #endif
 		END_TIMER;
-		if (debug_flags & DEBUG_FLAG_TIME_CRAY)
-			info("alpsc_get_topology call took: %s", TIME_STR);
+		log_flag(TIME_CRAY, "alpsc_get_topology call took: %s",
+			 TIME_STR);
 	}
 
 	verbose("%s loaded", plugin_name);
@@ -1159,8 +1155,7 @@ extern int select_p_job_init(List job_list)
 		job_record_t *job_ptr;
 		select_jobinfo_t *jobinfo;
 
-		if (debug_flags & DEBUG_FLAG_SELECT_TYPE)
-			info("select_p_job_init: syncing jobs");
+		log_flag(SELECT_TYPE, "select_p_job_init: syncing jobs");
 
 		while ((job_ptr = list_next(itr))) {
 			jobinfo = job_ptr->select_jobinfo->data;
@@ -1239,7 +1234,7 @@ extern int select_p_node_init(node_record_t *node_ptr, int node_cnt)
 		if (alpsc_get_topology(&err_msg, &topology,
 				       &topology_num_nodes)) {
 			END_TIMER;
-			if (debug_flags & DEBUG_FLAG_TIME_CRAY)
+			if (slurm_conf.debug_flags & DEBUG_FLAG_TIME_CRAY)
 				INFO_LINE("call took: %s", TIME_STR);
 
 			if (err_msg) {
@@ -1352,7 +1347,7 @@ extern int select_p_node_init(node_record_t *node_ptr, int node_cnt)
 
 	slurm_mutex_unlock(&blade_mutex);
 	END_TIMER;
-	if (debug_flags & DEBUG_FLAG_TIME_CRAY)
+	if (slurm_conf.debug_flags & DEBUG_FLAG_TIME_CRAY)
 		INFO_LINE("call took: %s", TIME_STR);
 
 	rc = other_node_init(node_ptr, node_cnt);
@@ -1578,7 +1573,7 @@ extern int select_p_job_suspend(job_record_t *job_ptr, bool indf_susp)
 		}
 		list_iterator_destroy(i);
 		END_TIMER;
-		if (debug_flags & DEBUG_FLAG_TIME_CRAY)
+		if (slurm_conf.debug_flags & DEBUG_FLAG_TIME_CRAY)
 			INFO_LINE("call took: %s", TIME_STR);
 	}
 #endif
@@ -1602,7 +1597,7 @@ extern int select_p_job_resume(job_record_t *job_ptr, bool indf_susp)
 		}
 		list_iterator_destroy(i);
 		END_TIMER;
-		if (debug_flags & DEBUG_FLAG_TIME_CRAY)
+		if (slurm_conf.debug_flags & DEBUG_FLAG_TIME_CRAY)
 			INFO_LINE("call took: %s", TIME_STR);
 	}
 #endif
@@ -1643,7 +1638,7 @@ extern bitstr_t *select_p_step_pick_nodes(job_record_t *job_ptr,
 		bit_not(*avail_nodes);
 	}
 	END_TIMER;
-	if (debug_flags & DEBUG_FLAG_TIME_CRAY)
+	if (slurm_conf.debug_flags & DEBUG_FLAG_TIME_CRAY)
 		INFO_LINE("call took: %s", TIME_STR);
 
 	return other_step_pick_nodes(job_ptr, jobinfo, node_count, avail_nodes);
@@ -1690,7 +1685,7 @@ extern int select_p_step_start(step_record_t *step_ptr)
 		bit_or(jobinfo->used_blades, step_jobinfo->blade_map);
 	}
 	END_TIMER;
-	if (debug_flags & DEBUG_FLAG_TIME_CRAY)
+	if (slurm_conf.debug_flags & DEBUG_FLAG_TIME_CRAY)
 		INFO_LINE("call took: %s", TIME_STR);
 
 	return other_step_start(step_ptr);
@@ -2103,7 +2098,6 @@ extern int select_p_update_node_config(int index)
 
 extern int select_p_reconfigure(void)
 {
-	debug_flags = slurm_get_debug_flags();
 	return other_reconfigure();
 }
 

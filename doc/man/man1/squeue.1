@@ -1,4 +1,4 @@
-.TH squeue "1" "Slurm Commands" "January 2020" "Slurm Commands"
+.TH squeue "1" "Slurm Commands" "March 2020" "Slurm Commands"
 
 .SH "NAME"
 squeue \- view information about jobs located in the Slurm scheduling queue.
@@ -206,9 +206,8 @@ Number of nodes allocated to the job or the minimum number of nodes
 required by a pending job. The actual number of nodes allocated to a pending
 job may exceed this number if the job specified a node range count (e.g.
 minimum and maximum node counts) or the job specifies a processor
-count instead of a node count and the cluster contains nodes with varying
-processor counts. As a job is completing this number will reflect the
-current number of nodes allocated.
+count instead of a node count. As a job is completing this number will reflect
+the current number of nodes allocated.
 (Valid for jobs only)
 .TP
 \fB%e\fR
@@ -716,9 +715,8 @@ Number of nodes allocated to the job or the minimum number of nodes
 required by a pending job. The actual number of nodes allocated to a pending
 job may exceed this number if the job specified a node range count (e.g.
 minimum and maximum node counts) or the job specifies a processor
-count instead of a node count and the cluster contains nodes with varying
-processor counts. As a job is completing this number will reflect the
-current number of nodes allocated.
+count instead of a node count. As a job is completing this number will reflect
+the current number of nodes allocated.
 (Valid for jobs only)
 .TP
 \fBnumtasks\fR
@@ -774,7 +772,7 @@ Also see \fBpriority\fR.
 Profile of the job.
 (Valid for jobs only)
 .TP
-\fBpreemptime\fR
+\fBpreempttime\fR
 The preempt time for the job.
 (Valid for jobs only)
 .TP
@@ -821,7 +819,7 @@ The amount of time changed for the job to run.
 (Valid for jobs only)
 .TP
 \fBrestartcnt\fR
-The number of checkpoint restarts for the job.
+The number of restarts for the job.
 (Valid for jobs only)
 .TP
 \fBresvport\fR
@@ -1160,18 +1158,18 @@ The partition required by this job is in an Inactive state and not able to
 start jobs.
 .TP
 \fBPartitionNodeLimit\fR
-The number of nodes required by this job is outside of it's
-partitions current limits.
+The number of nodes required by this job is outside of its partition's current
+limits.
 Can also indicate that required nodes are DOWN or DRAINED.
 .TP
 \fBPartitionTimeLimit\fR
-The job's time limit exceeds it's partition's current time limit.
+The job's time limit exceeds its partition's current time limit.
 .TP
 \fBPriority\fR
 One or more higher priority jobs exist for this partition or advanced reservation.
 .TP
 \fBProlog\fR
-It's PrologSlurmctld program is still running.
+Its PrologSlurmctld program is still running.
 .TP
 \fBQOSJobLimit\fR
 The job's QOS has reached its maximum job count.

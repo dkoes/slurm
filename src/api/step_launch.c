@@ -67,6 +67,7 @@
 #include "src/common/macros.h"
 #include "src/common/net.h"
 #include "src/common/plugstack.h"
+#include "src/common/read_config.h"
 #include "src/common/slurm_auth.h"
 #include "src/common/slurm_cred.h"
 #include "src/common/slurm_mpi.h"
@@ -99,7 +100,6 @@ static void _print_launch_msg(launch_tasks_request_msg_t *msg,
 /**********************************************************************
  * Message handler declarations
  **********************************************************************/
-static uid_t  slurm_uid;
 static bool   force_terminated_job = false;
 static int    task_exit_signal = 0;
 
@@ -383,7 +383,7 @@ extern int slurm_step_launch(slurm_step_ctx_t *ctx,
 		 * if io_timeout seconds pass without stdio traffic to/from
 		 * the node.
 		 */
-		ctx->launch_state->io_timeout = slurm_get_msg_timeout();
+		ctx->launch_state->io_timeout = slurm_conf.msg_timeout;
 	} else { /* user_managed_io is true */
 		/* initialize user_managed_io_t */
 		ctx->launch_state->io.user =
@@ -576,7 +576,7 @@ extern int slurm_step_launch_add(slurm_step_ctx_t *ctx,
 		 * if io_timeout seconds pass without stdio traffic to/from
 		 * the node.
 		 */
-		ctx->launch_state->io_timeout = slurm_get_msg_timeout();
+		ctx->launch_state->io_timeout = slurm_conf.msg_timeout;
 	} else { /* user_managed_io is true */
 		xrealloc(ctx->launch_state->io.user->sockets,
 			 sizeof(int) * ctx->step_req->num_tasks);
@@ -808,7 +808,7 @@ void slurm_step_launch_wait_finish(slurm_step_ctx_t *ctx)
 		sls->io.normal = NULL;
 	}
 
-	mpi_hook_client_fini(sls->mpi_state);
+	sls->mpi_rc = mpi_hook_client_fini(sls->mpi_state);
 	slurm_mutex_unlock(&sls->lock);
 }
 
@@ -1145,7 +1145,6 @@ static int _msg_thr_create(struct step_launch_state *sls, int num_nodes)
 	uint16_t eio_timeout;
 
 	debug("Entering _msg_thr_create()");
-	slurm_uid = (uid_t) slurm_get_slurm_user_id();
 
 	eio_timeout = slurm_get_srun_eio_timeout();
 	sls->msg_handle = eio_handle_create(eio_timeout);
@@ -1156,7 +1155,7 @@ static int _msg_thr_create(struct step_launch_state *sls, int num_nodes)
 	 * parallel jobs using PMI sometimes result in slow message
 	 * responses and timeouts. Raise the default timeout for srun. */
 	if (!message_socket_ops.timeout)
-		message_socket_ops.timeout = slurm_get_msg_timeout() * 8000;
+		message_socket_ops.timeout = slurm_conf.msg_timeout * 8000;
 
 	ports = slurm_get_srun_port_range();
 	for (i = 0; i < sls->num_resp_port; i++) {
@@ -1569,7 +1568,8 @@ _handle_msg(void *arg, slurm_msg_t *msg)
 
 	req_uid = g_slurm_auth_get_uid(msg->auth_cred);
 
-	if ((req_uid != slurm_uid) && (req_uid != 0) && (req_uid != uid)) {
+	if ((req_uid != slurm_conf.slurm_user_id) && (req_uid != 0) &&
+	    (req_uid != uid)) {
 		error ("Security violation, slurm message from uid %u",
 		       (unsigned int) req_uid);
  		return;
@@ -1718,8 +1718,8 @@ static int _launch_tasks(slurm_step_ctx_t *ctx,
 	 * running Prolog
 	 */
 	if (timeout <= 0) {
-		timeout = (slurm_get_msg_timeout() +
-			   slurm_get_batch_start_timeout()) * 1000;
+		timeout = (slurm_conf.msg_timeout +
+		           slurm_conf.batch_start_timeout) * 1000;
 	}
 
 	slurm_msg_t_init(&msg);

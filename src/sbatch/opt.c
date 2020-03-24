@@ -282,7 +282,7 @@ extern char *process_options_first_pass(int argc, char **argv)
 	slurm_reset_all_options(&opt, true);
 
 	/* cli_filter plugins can change the defaults */
-	if (cli_filter_plugin_setup_defaults(&opt, true)) {
+	if (cli_filter_g_setup_defaults(&opt, true)) {
 		error("cli_filter plugin terminated with error");
 		exit(error_exit);
 	}
@@ -361,7 +361,7 @@ extern void process_options_second_pass(int argc, char **argv, int *argc_off,
 	slurm_reset_all_options(&opt, false);
 
 	/* cli_filter plugins can change the defaults */
-	if (cli_filter_plugin_setup_defaults(&opt, false)) {
+	if (cli_filter_g_setup_defaults(&opt, false)) {
 		error("cli_filter plugin terminated with error");
 		exit(error_exit);
 	}
@@ -384,7 +384,7 @@ extern void process_options_second_pass(int argc, char **argv, int *argc_off,
 	/* set options from command line */
 	*argc_off = _set_options(argc, argv);
 
-	if (cli_filter_plugin_pre_submit(&opt, het_job_inx)) {
+	if (cli_filter_g_pre_submit(&opt, het_job_inx)) {
 		error("cli_filter plugin terminated with error");
 		exit(error_exit);
 	}
@@ -1110,7 +1110,7 @@ static void _usage(void)
 
 static void _help(void)
 {
-	slurm_ctl_conf_t *conf;
+	slurm_conf_t *conf = slurm_conf_lock();
 
 	printf (
 "Usage: sbatch [OPTIONS...] executable [args...]\n"
@@ -1139,7 +1139,7 @@ static void _help(void)
 "      --gres=list             required generic resources\n"
 "      --gres-flags=opts       flags related to GRES management\n"
 "  -H, --hold                  submit job in held state\n"
-"      --ignore-pbs            Ignore #PBS options in the batch script\n"
+"      --ignore-pbs            Ignore #PBS and #BSUB options in the batch script\n"
 "  -i, --input=in              file for batch script's standard input\n"
 "  -J, --job-name=jobname      name of job\n"
 "  -k, --no-kill               do not kill job on node failure\n"
@@ -1225,7 +1225,6 @@ static void _help(void)
 "\n"
 "      --ntasks-per-core=n     number of tasks to invoke on each core\n"
 "      --ntasks-per-socket=n   number of tasks to invoke on each socket\n");
-	conf = slurm_conf_lock();
 	if (xstrstr(conf->task_plugin, "affinity")) {
 		printf(
 "      --hint=                 Bind tasks according to application hints\n"

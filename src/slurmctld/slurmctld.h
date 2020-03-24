@@ -58,7 +58,7 @@
 #include "src/common/macros.h"
 #include "src/common/node_conf.h"
 #include "src/common/pack.h"
-#include "src/common/read_config.h" /* location of slurmctld_conf */
+#include "src/common/read_config.h" /* location of slurm_conf */
 #include "src/common/job_resources.h"
 #include "src/common/slurm_cred.h"
 #include "src/common/slurm_protocol_api.h"
@@ -225,6 +225,7 @@ extern int   batch_sched_delay;
 extern time_t control_time;		/* Time when became primary controller */
 extern uint32_t   cluster_cpus;
 extern bool disable_remote_singleton;
+extern int max_depend_depth;
 extern bool node_features_updated;
 extern pthread_cond_t purge_thread_cond;
 extern pthread_mutex_t purge_thread_lock;
@@ -2479,7 +2480,7 @@ extern int update_job_wckey(char *module, job_record_t *job_ptr,
 extern void update_job_nodes_completing(void);
 
 /* Reset slurmctld logging based upon configuration parameters
- * uses common slurmctld_conf data structure */
+ * uses common slurm_conf data structure */
 extern void update_logging(void);
 
 /*
@@ -2625,11 +2626,6 @@ extern bool validate_operator(uid_t uid);
  * comes last.
  */
 extern void cleanup_completing(job_record_t *job_ptr);
-
-/* trace_job() - print the job details if
- *               the DEBUG_FLAG_TRACE_JOBS is set
- */
-extern void trace_job(job_record_t *job_ptr, const char *, const char *);
 
 /*
  * Determine if slurmctld will respond to "configless" RPCs. If so,

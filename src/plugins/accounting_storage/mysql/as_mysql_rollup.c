@@ -705,8 +705,7 @@ static int _process_cluster_usage(mysql_conn_t *mysql_conn,
 	   all at once in the end proves to be faster.  Just FYI
 	   so we don't go testing again and again.
 	*/
-	if (debug_flags & DEBUG_FLAG_DB_USAGE)
-		DB_DEBUG(mysql_conn->conn, "query\n%s", query);
+	DB_DEBUG(DB_USAGE, mysql_conn->conn, "query\n%s", query);
 	rc = mysql_db_query(mysql_conn, query);
 	xfree(query);
 	if (rc != SLURM_SUCCESS)
@@ -825,7 +824,8 @@ static local_cluster_usage_t *_setup_cluster_usage(mysql_conn_t *mysql_conn,
 						   time_t curr_start,
 						   time_t curr_end,
 						   List resv_usage_list,
-						   List cluster_down_list)
+						   List cluster_down_list,
+						   int dims)
 {
 	local_cluster_usage_t *c_usage = NULL;
 	char *query = NULL;
@@ -833,7 +833,9 @@ static local_cluster_usage_t *_setup_cluster_usage(mysql_conn_t *mysql_conn,
 	MYSQL_ROW row;
 	int i = 0;
 	ListIterator d_itr = NULL;
+	ListIterator r_itr = NULL;
 	local_cluster_usage_t *loc_c_usage;
+	local_resv_usage_t *loc_r_usage;
 
 	char *event_req_inx[] = {
 		"node_name",
@@ -871,8 +873,7 @@ static local_cluster_usage_t *_setup_cluster_usage(mysql_conn_t *mysql_conn,
 			       curr_end, curr_start);
 	xfree(event_str);
 
-	if (debug_flags & DEBUG_FLAG_DB_USAGE)
-		DB_DEBUG(mysql_conn->conn, "query\n%s", query);
+	DB_DEBUG(DB_USAGE, mysql_conn->conn, "query\n%s", query);
 	if (!(result = mysql_db_query_ret(mysql_conn, query, 0))) {
 		xfree(query);
 		return NULL;
@@ -881,12 +882,13 @@ static local_cluster_usage_t *_setup_cluster_usage(mysql_conn_t *mysql_conn,
 	xfree(query);
 
 	d_itr = list_iterator_create(cluster_down_list);
+	r_itr = list_iterator_create(resv_usage_list);
 	while ((row = mysql_fetch_row(result))) {
 		time_t row_start = slurm_atoul(row[EVENT_REQ_START]);
 		time_t row_end = slurm_atoul(row[EVENT_REQ_END]);
 		uint16_t state = slurm_atoul(row[EVENT_REQ_STATE]);
 		time_t local_start, local_end;
-		int seconds;
+		int seconds, resv_seconds;
 
 		if (row_start < curr_start)
 			row_start = curr_start;
@@ -949,6 +951,54 @@ static local_cluster_usage_t *_setup_cluster_usage(mysql_conn_t *mysql_conn,
 		if (!c_usage)
 			continue;
 
+		resv_seconds = 0;
+		/*
+		 * Now switch this time from any non-maint
+		 * reservations that may have had the node
+		 * allocated during this time.
+		 */
+		list_iterator_reset(r_itr);
+		while ((loc_r_usage = list_next(r_itr))) {
+			time_t temp_end = row_end;
+			time_t temp_start = row_start;
+			List loc_tres = NULL;
+
+			if (hostlist_find_dims(loc_r_usage->hl,
+					       row[EVENT_REQ_NAME], dims)
+			    < 0)
+				continue;
+
+			if (loc_r_usage->start > temp_start)
+				temp_start = loc_r_usage->start;
+			if (loc_r_usage->end < temp_end)
+				temp_end = loc_r_usage->end;
+			if ((resv_seconds = (temp_end - temp_start)) < 1)
+				continue;
+
+			loc_tres = list_create(_destroy_local_tres_usage);
+
+			_add_tres_time_2_list(loc_tres,
+					      row[EVENT_REQ_TRES],
+					      loc_r_usage->flags &
+					      RESERVE_FLAG_MAINT ?
+					      TIME_PDOWN : TIME_DOWN,
+					      resv_seconds,
+					      0, 0);
+			_add_tres_time_2_list(c_usage->loc_tres,
+					      row[EVENT_REQ_TRES],
+					      loc_r_usage->flags &
+					      RESERVE_FLAG_MAINT ?
+					      TIME_PDOWN : TIME_DOWN,
+					      resv_seconds,
+					      0, 0);
+
+			_remove_job_tres_time_from_cluster(
+				loc_r_usage->loc_tres,
+				loc_tres, resv_seconds);
+
+			FREE_NULL_LIST(loc_tres);
+		}
+
 		local_start = row_start;
 		local_end = row_end;
 
@@ -961,10 +1011,12 @@ static local_cluster_usage_t *_setup_cluster_usage(mysql_conn_t *mysql_conn,
 		if ((seconds = (local_end - local_start)) < 1)
 			continue;
 
-		_add_tres_time_2_list(c_usage->loc_tres,
-				      row[EVENT_REQ_TRES],
-				      TIME_DOWN,
-				      seconds, 0, 0);
+		seconds -= resv_seconds;
+		if (seconds > 0)
+			_add_tres_time_2_list(c_usage->loc_tres,
+					      row[EVENT_REQ_TRES],
+					      TIME_DOWN,
+					      seconds, 0, 0);
 
 		/*
 		 * Now remove this time if there was a
@@ -1052,8 +1104,7 @@ extern int _setup_resv_usage(mysql_conn_t *mysql_conn,
 			       resv_str, cluster_name, resv_table,
 			       curr_end, curr_start);
 	xfree(resv_str);
-	if (debug_flags & DEBUG_FLAG_DB_USAGE)
-		DB_DEBUG(mysql_conn->conn, "query\n%s", query);
+	DB_DEBUG(DB_USAGE, mysql_conn->conn, "query\n%s", query);
 
 	result = mysql_db_query_ret(mysql_conn, query, 0);
 	xfree(query);
@@ -1227,8 +1278,7 @@ extern int as_mysql_hourly_rollup(mysql_conn_t *mysql_conn,
 	/* We need to figure out the dimensions of this cluster */
 	query = xstrdup_printf("select dimensions from %s where name='%s'",
 			       cluster_table, cluster_name);
-	if (debug_flags & DEBUG_FLAG_DB_USAGE)
-		DB_DEBUG(mysql_conn->conn, "query\n%s", query);
+	DB_DEBUG(DB_USAGE, mysql_conn->conn, "query\n%s", query);
 	result = mysql_db_query_ret(mysql_conn, query, 0);
 	xfree(query);
 
@@ -1259,10 +1309,9 @@ extern int as_mysql_hourly_rollup(mysql_conn_t *mysql_conn,
 		int last_id = -1;
 		int last_wckeyid = -1;
 
-		if (debug_flags & DEBUG_FLAG_DB_USAGE)
-			DB_DEBUG(mysql_conn->conn,
-				 "%s curr hour is now %ld-%ld",
-				 cluster_name, curr_start, curr_end);
+		DB_DEBUG(DB_USAGE, mysql_conn->conn,
+		         "%s curr hour is now %ld-%ld",
+		         cluster_name, curr_start, curr_end);
 /* 		info("start %s", slurm_ctime2(&curr_start)); */
 /* 		info("end %s", slurm_ctime2(&curr_end)); */
 
@@ -1275,7 +1324,8 @@ extern int as_mysql_hourly_rollup(mysql_conn_t *mysql_conn,
 		c_usage = _setup_cluster_usage(mysql_conn, cluster_name,
 					       curr_start, curr_end,
 					       resv_usage_list,
-					       cluster_down_list);
+					       cluster_down_list,
+					       dims);
 
 		if (c_usage)
 			xassert(c_usage->loc_tres);
@@ -1292,8 +1342,7 @@ extern int as_mysql_hourly_rollup(mysql_conn_t *mysql_conn,
 				       job_str, cluster_name, job_table,
 				       curr_end, curr_start);
 
-		if (debug_flags & DEBUG_FLAG_DB_USAGE)
-			DB_DEBUG(mysql_conn->conn, "query\n%s", query);
+		DB_DEBUG(DB_USAGE, mysql_conn->conn, "query\n%s", query);
 		if (!(result = mysql_db_query_ret(
 			      mysql_conn, query, 0))) {
 			rc = SLURM_ERROR;
@@ -1496,35 +1545,36 @@ extern int as_mysql_hourly_rollup(mysql_conn_t *mysql_conn,
 
 					loc_seconds = (temp_end - temp_start);
 
-					if (loc_seconds > 0) {
-						if (c_usage &&
-						    (r_usage->flags &
-						     RESERVE_FLAG_IGN_JOBS))
-							/*
-							 * job usage was not
-							 * bundled with resv
-							 * usage so need to
-							 * account for it
-							 * individually here
-							 */
-							_add_time_tres_list(
-								c_usage->
-								loc_tres,
-								loc_tres,
-								TIME_ALLOC,
-								loc_seconds, 0);
+					if (loc_seconds <= 0)
+						continue;
 
-						_add_time_tres_list(
-							r_usage->loc_tres,
-							loc_tres, TIME_ALLOC,
-							loc_seconds, 1);
-						if ((rc = _update_unused_wall(
-							     r_usage,
-							     loc_tres,
-							     loc_seconds))
-						    != SLURM_SUCCESS)
-							goto end_it;
-					}
+					if (c_usage &&
+					    (r_usage->flags &
+					     RESERVE_FLAG_IGN_JOBS))
+						/*
+						 * job usage was not
+						 * bundled with resv
+						 * usage so need to
+						 * account for it
+						 * individually here
+						 */
+						_add_tres_time_2_list(
+							c_usage->loc_tres,
+							row[JOB_REQ_TRES],
+							TIME_ALLOC,
+							loc_seconds,
+							0, 0);
+
+					_add_time_tres_list(
+						r_usage->loc_tres,
+						loc_tres, TIME_ALLOC,
+						loc_seconds, 1);
+					if ((rc = _update_unused_wall(
+						     r_usage,
+						     loc_tres,
+						     loc_seconds))
+					    != SLURM_SUCCESS)
+						goto end_it;
 				}
 
 				_transfer_loc_tres(&loc_tres, a_usage);
@@ -1676,8 +1726,8 @@ extern int as_mysql_hourly_rollup(mysql_conn_t *mysql_conn,
 		}
 
 		if (query) {
-			if (debug_flags & DEBUG_FLAG_DB_USAGE)
-				DB_DEBUG(mysql_conn->conn, "query\n%s", query);
+			DB_DEBUG(DB_USAGE, mysql_conn->conn, "query\n%s",
+			         query);
 			rc = mysql_db_query(mysql_conn, query);
 			xfree(query);
 			if (rc != SLURM_SUCCESS) {
@@ -1716,8 +1766,8 @@ extern int as_mysql_hourly_rollup(mysql_conn_t *mysql_conn,
 						curr_start, now,
 						a_usage, &query);
 		if (query) {
-			if (debug_flags & DEBUG_FLAG_DB_USAGE)
-				DB_DEBUG(mysql_conn->conn, "query\n%s", query);
+			DB_DEBUG(DB_USAGE, mysql_conn->conn, "query\n%s",
+			         query);
 			rc = mysql_db_query(mysql_conn, query);
 			xfree(query);
 			if (rc != SLURM_SUCCESS) {
@@ -1735,8 +1785,8 @@ extern int as_mysql_hourly_rollup(mysql_conn_t *mysql_conn,
 						curr_start, now,
 						w_usage, &query);
 		if (query) {
-			if (debug_flags & DEBUG_FLAG_DB_USAGE)
-				DB_DEBUG(mysql_conn->conn, "query\n%s", query);
+			DB_DEBUG(DB_USAGE, mysql_conn->conn, "query\n%s",
+			         query);
 			rc = mysql_db_query(mysql_conn, query);
 			xfree(query);
 			if (rc != SLURM_SUCCESS) {
@@ -1839,10 +1889,9 @@ extern int as_mysql_nonhour_rollup(mysql_conn_t *mysql_conn,
 
 		curr_end = slurm_mktime(&start_tm);
 
-		if (debug_flags & DEBUG_FLAG_DB_USAGE)
-			DB_DEBUG(mysql_conn->conn,
-				 "curr %s is now %ld-%ld",
-				 unit_name, curr_start, curr_end);
+		DB_DEBUG(DB_USAGE, mysql_conn->conn,
+		         "curr %s is now %ld-%ld",
+		         unit_name, curr_start, curr_end);
 /* 		info("start %s", slurm_ctime2(&curr_start)); */
 /* 		info("end %s", slurm_ctime2(&curr_end)); */
 		query = xstrdup_printf(
@@ -1910,8 +1959,7 @@ extern int as_mysql_nonhour_rollup(mysql_conn_t *mysql_conn,
 				   wckey_hour_table,
 				   curr_end, curr_start, now);
 		}
-		if (debug_flags & DEBUG_FLAG_DB_USAGE)
-			DB_DEBUG(mysql_conn->conn, "query\n%s", query);
+		DB_DEBUG(DB_USAGE, mysql_conn->conn, "query\n%s", query);
 		rc = mysql_db_query(mysql_conn, query);
 		xfree(query);
 		if (rc != SLURM_SUCCESS) {

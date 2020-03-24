@@ -125,7 +125,7 @@ static slurm_protocol_config_t *_slurm_api_get_comm_config(void)
 {
 	slurm_protocol_config_t *proto_conf = NULL;
 	slurm_addr_t controller_addr;
-	slurm_ctl_conf_t *conf;
+	slurm_conf_t *conf;
 	int i;
 
 	conf = slurm_conf_lock();
@@ -191,7 +191,7 @@ void slurm_api_clear_config(void)
 uint16_t slurm_get_complete_wait(void)
 {
 	uint16_t complete_wait = 0;
-	slurm_ctl_conf_t *conf;
+	slurm_conf_t *conf;
 
 	if (slurmdbd_conf) {
 	} else {
@@ -208,7 +208,7 @@ uint16_t slurm_get_complete_wait(void)
 uint32_t slurm_get_cpu_freq_def(void)
 {
 	uint32_t cpu_freq_def = 0;
-	slurm_ctl_conf_t *conf;
+	slurm_conf_t *conf;
 
 	if (slurmdbd_conf) {
 	} else {
@@ -225,7 +225,7 @@ uint32_t slurm_get_cpu_freq_def(void)
 uint32_t slurm_get_cpu_freq_govs(void)
 {
 	uint32_t cpu_freq_govs = 0;
-	slurm_ctl_conf_t *conf;
+	slurm_conf_t *conf;
 
 	if (slurmdbd_conf) {
 	} else {
@@ -236,23 +236,6 @@ uint32_t slurm_get_cpu_freq_govs(void)
 	return cpu_freq_govs;
 }
 
-/* slurm_get_batch_start_timeout
- * RET BatchStartTimeout value from slurm.conf
- */
-uint16_t slurm_get_batch_start_timeout(void)
-{
-	uint16_t batch_start_timeout = 0;
-	slurm_ctl_conf_t *conf;
-
-	if (slurmdbd_conf) {
-	} else {
-		conf = slurm_conf_lock();
-		batch_start_timeout = conf->batch_start_timeout;
-		slurm_conf_unlock();
-	}
-	return batch_start_timeout;
-}
-
 /*
  * slurm_get_control_cnt
  * RET Count of SlurmctldHost records from slurm.conf
@@ -261,7 +244,7 @@ uint16_t slurm_get_batch_start_timeout(void)
 uint32_t slurm_get_control_cnt(void)
 {
 	uint32_t control_cnt = 0;
-	slurm_ctl_conf_t *conf;
+	slurm_conf_t *conf;
 
 	if (slurmdbd_conf) {
 	} else {
@@ -278,7 +261,7 @@ uint32_t slurm_get_control_cnt(void)
 uint16_t slurm_get_suspend_timeout(void)
 {
 	uint16_t suspend_timeout = 0;
-	slurm_ctl_conf_t *conf;
+	slurm_conf_t *conf;
 
 	if (slurmdbd_conf) {
 	} else {
@@ -295,7 +278,7 @@ uint16_t slurm_get_suspend_timeout(void)
 uint16_t slurm_get_resume_timeout(void)
 {
 	uint16_t resume_timeout = 0;
-	slurm_ctl_conf_t *conf;
+	slurm_conf_t *conf;
 
 	if (slurmdbd_conf) {
 	} else {
@@ -312,7 +295,7 @@ uint16_t slurm_get_resume_timeout(void)
 uint32_t slurm_get_suspend_time(void)
 {
 	uint32_t suspend_time = 0;
-	slurm_ctl_conf_t *conf;
+	slurm_conf_t *conf;
 
 	if (slurmdbd_conf) {
 	} else {
@@ -329,7 +312,7 @@ uint32_t slurm_get_suspend_time(void)
 uint64_t slurm_get_def_mem_per_cpu(void)
 {
 	uint64_t mem_per_cpu = 0;
-	slurm_ctl_conf_t *conf;
+	slurm_conf_t *conf;
 
 	if (slurmdbd_conf) {
 	} else {
@@ -346,7 +329,7 @@ uint64_t slurm_get_def_mem_per_cpu(void)
 uint16_t slurm_get_kill_on_bad_exit(void)
 {
 	uint16_t kill_on_bad_exit = 0;
-	slurm_ctl_conf_t *conf;
+	slurm_conf_t *conf;
 
 	if (slurmdbd_conf) {
 	} else {
@@ -363,7 +346,7 @@ uint16_t slurm_get_kill_on_bad_exit(void)
 uint32_t slurm_get_prolog_flags(void)
 {
 	uint32_t prolog_flags = 0;
-	slurm_ctl_conf_t *conf;
+	slurm_conf_t *conf;
 
 	if (slurmdbd_conf) {
 	} else {
@@ -374,29 +357,11 @@ uint32_t slurm_get_prolog_flags(void)
 	return prolog_flags;
 }
 
-/* slurm_get_debug_flags
- * RET DebugFlags value from slurm.conf
- */
-uint64_t slurm_get_debug_flags(void)
-{
-	uint64_t debug_flags = 0;
-	slurm_ctl_conf_t *conf;
-
-	if (slurmdbd_conf) {
-		debug_flags = slurmdbd_conf->debug_flags;
-	} else {
-		conf = slurm_conf_lock();
-		debug_flags = conf->debug_flags;
-		slurm_conf_unlock();
-	}
-	return debug_flags;
-}
-
 /* slurm_set_debug_flags
  */
 void slurm_set_debug_flags(uint64_t debug_flags)
 {
-	slurm_ctl_conf_t *conf;
+	slurm_conf_t *conf;
 
 	if (slurmdbd_conf) {
 	} else {
@@ -412,7 +377,7 @@ void slurm_set_debug_flags(uint64_t debug_flags)
 uint64_t slurm_get_max_mem_per_cpu(void)
 {
 	uint64_t mem_per_cpu = 0;
-	slurm_ctl_conf_t *conf;
+	slurm_conf_t *conf;
 
 	if (slurmdbd_conf) {
 	} else {
@@ -429,7 +394,7 @@ uint64_t slurm_get_max_mem_per_cpu(void)
 uint32_t slurm_get_epilog_msg_time(void)
 {
 	uint32_t epilog_msg_time = 0;
-	slurm_ctl_conf_t *conf;
+	slurm_conf_t *conf;
 
  	if (slurmdbd_conf) {
 	} else {
@@ -446,7 +411,7 @@ uint32_t slurm_get_epilog_msg_time(void)
 extern int slurm_get_env_timeout(void)
 {
 	int timeout = 0;
-	slurm_ctl_conf_t *conf;
+	slurm_conf_t *conf;
 
 	if (slurmdbd_conf) {
 	} else {
@@ -463,7 +428,7 @@ extern int slurm_get_env_timeout(void)
 extern uint32_t slurm_get_max_array_size(void)
 {
 	int max_array_size = 0;
-	slurm_ctl_conf_t *conf;
+	slurm_conf_t *conf;
 
 	if (slurmdbd_conf) {
 	} else {
@@ -476,13 +441,13 @@ extern uint32_t slurm_get_max_array_size(void)
 
 
 /* slurm_get_mpi_default
- * get default mpi value from slurmctld_conf object
+ * get default mpi value from slurm_conf object
  * RET char *   - mpi default value from slurm.conf,  MUST be xfreed by caller
  */
 char *slurm_get_mpi_default(void)
 {
 	char *mpi_default = NULL;
-	slurm_ctl_conf_t *conf;
+	slurm_conf_t *conf;
 
 	if (slurmdbd_conf) {
 	} else {
@@ -494,13 +459,13 @@ char *slurm_get_mpi_default(void)
 }
 
 /* slurm_get_mpi_params
- * get mpi parameters value from slurmctld_conf object
+ * get mpi parameters value from slurm_conf object
  * RET char *   - mpi default value from slurm.conf,  MUST be xfreed by caller
  */
 char *slurm_get_mpi_params(void)
 {
 	char *mpi_params = NULL;
-	slurm_ctl_conf_t *conf;
+	slurm_conf_t *conf;
 
 	if (slurmdbd_conf) {
 	} else {
@@ -512,14 +477,14 @@ char *slurm_get_mpi_params(void)
 }
 
 /* slurm_get_msg_aggr_params
- * get message aggregation parameters value from slurmctld_conf object
+ * get message aggregation parameters value from slurm_conf object
  * RET char *   - message aggregation value from slurm.conf,
  * MUST be xfreed by caller
  */
 char *slurm_get_msg_aggr_params(void)
 {
 	char *msg_aggr_params = NULL;
-	slurm_ctl_conf_t *conf;
+	slurm_conf_t *conf;
 
 	if (slurmdbd_conf) {
 	} else {
@@ -536,7 +501,7 @@ char *slurm_get_msg_aggr_params(void)
 extern char *slurm_get_reboot_program(void)
 {
 	char *reboot_program = NULL;
-	slurm_ctl_conf_t *conf;
+	slurm_conf_t *conf;
 
 	if (slurmdbd_conf) {
 	} else {
@@ -547,72 +512,14 @@ extern char *slurm_get_reboot_program(void)
 	return reboot_program;
 }
 
-/* slurm_get_tcp_timeout
- * get default tcp timeout value from slurmctld_conf object
- */
-uint16_t slurm_get_tcp_timeout(void)
-{
-	uint16_t tcp_timeout = 0;
-	slurm_ctl_conf_t *conf;
-
- 	if (slurmdbd_conf) {
-		tcp_timeout = slurmdbd_conf->tcp_timeout;
-	} else {
-		conf = slurm_conf_lock();
-		tcp_timeout = conf->tcp_timeout;
-		slurm_conf_unlock();
-	}
-	return tcp_timeout;
-}
-
-/* slurm_get_msg_timeout
- * get default message timeout value from slurmctld_conf object
- */
-uint16_t slurm_get_msg_timeout(void)
-{
-	uint16_t msg_timeout = 0;
-	slurm_ctl_conf_t *conf;
-
- 	if (slurmdbd_conf) {
-		msg_timeout = slurmdbd_conf->msg_timeout;
-	} else {
-		conf = slurm_conf_lock();
-		msg_timeout = conf->msg_timeout;
-		slurm_conf_unlock();
-#ifdef MEMORY_LEAK_DEBUG
-		msg_timeout *= 4;
-#endif
-	}
-	return msg_timeout;
-}
-
-/* slurm_get_plugin_dir
- * get plugin directory from slurmctld_conf object
- * RET char *   - plugin directory, MUST be xfreed by caller
- */
-char *slurm_get_plugin_dir(void)
-{
-	char *plugin_dir = NULL;
-	slurm_ctl_conf_t *conf;
-
-	if (slurmdbd_conf) {
-		plugin_dir = xstrdup(slurmdbd_conf->plugindir);
-	} else {
-		conf = slurm_conf_lock();
-		plugin_dir = xstrdup(conf->plugindir);
-		slurm_conf_unlock();
-	}
-	return plugin_dir;
-}
-
 /* slurm_get_priority_decay_hl
- * returns the priority decay half life in seconds from slurmctld_conf object
+ * returns the priority decay half life in seconds from slurm_conf object
  * RET uint32_t - decay_hl in secs.
  */
 uint32_t slurm_get_priority_decay_hl(void)
 {
 	uint32_t priority_hl = NO_VAL;
-	slurm_ctl_conf_t *conf;
+	slurm_conf_t *conf;
 
 	if (slurmdbd_conf) {
 	} else {
@@ -625,13 +532,13 @@ uint32_t slurm_get_priority_decay_hl(void)
 }
 
 /* slurm_get_priority_calc_period
- * returns the seconds between priority decay calculation from slurmctld_conf
+ * returns the seconds between priority decay calculation from slurm_conf
  * RET uint32_t - calc_period in secs.
  */
 uint32_t slurm_get_priority_calc_period(void)
 {
 	uint32_t calc_period = NO_VAL;
-	slurm_ctl_conf_t *conf;
+	slurm_conf_t *conf;
 
 	if (slurmdbd_conf) {
 	} else {
@@ -644,13 +551,13 @@ uint32_t slurm_get_priority_calc_period(void)
 }
 
 /* slurm_get_priority_favor_small
- * returns weither or not we are favoring small jobs from slurmctld_conf object
+ * returns weither or not we are favoring small jobs from slurm_conf object
  * RET bool - true if favor small, false else.
  */
 bool slurm_get_priority_favor_small(void)
 {
 	bool factor = 0;
-	slurm_ctl_conf_t *conf;
+	slurm_conf_t *conf;
 
 	if (slurmdbd_conf) {
 	} else {
@@ -663,13 +570,13 @@ bool slurm_get_priority_favor_small(void)
 }
 
 /* slurm_get_priority_flags
- * returns the priority flags bitmap from slurmctld_conf object
+ * returns the priority flags bitmap from slurm_conf object
  * RET uint16_t - priority flags
  */
 uint16_t slurm_get_priority_flags(void)
 {
 	uint16_t flags = 0;
-	slurm_ctl_conf_t *conf;
+	slurm_conf_t *conf;
 
 	if (slurmdbd_conf) {
 	} else {
@@ -682,13 +589,13 @@ uint16_t slurm_get_priority_flags(void)
 }
 
 /* slurm_get_priority_max_age
- * returns the priority age max in seconds from slurmctld_conf object
+ * returns the priority age max in seconds from slurm_conf object
  * RET uint32_t - age_max in secs.
  */
 uint32_t slurm_get_priority_max_age(void)
 {
 	uint32_t age = NO_VAL;
-	slurm_ctl_conf_t *conf;
+	slurm_conf_t *conf;
 
 	if (slurmdbd_conf) {
 	} else {
@@ -705,7 +612,7 @@ uint32_t slurm_get_priority_max_age(void)
 char *slurm_get_priority_params(void)
 {
 	char *params = 0;
-	slurm_ctl_conf_t *conf;
+	slurm_conf_t *conf;
 
  	if (slurmdbd_conf) {
 	} else {
@@ -717,13 +624,13 @@ char *slurm_get_priority_params(void)
 }
 
 /* slurm_get_priority_reset_period
- * returns the priority usage reset period from slurmctld_conf object
+ * returns the priority usage reset period from slurm_conf object
  * RET uint16_t - flag, see PRIORITY_RESET_* in slurm/slurm.h.
  */
 uint16_t slurm_get_priority_reset_period(void)
 {
 	uint16_t reset_period = (uint16_t) 0;
-	slurm_ctl_conf_t *conf;
+	slurm_conf_t *conf;
 
 	if (slurmdbd_conf) {
 	} else {
@@ -736,13 +643,13 @@ uint16_t slurm_get_priority_reset_period(void)
 }
 
 /* slurm_get_priority_site_factor_params
- * returns the site_factor_params value from slurmctld_conf object
+ * returns the site_factor_params value from slurm_conf object
  * RET char *    - site_factor_params, MUST be xfreed by caller
  */
 char *slurm_get_priority_site_factor_params(void)
 {
 	char *params = NULL;
-	slurm_ctl_conf_t *conf;
+	slurm_conf_t *conf;
 
 	if (slurmdbd_conf) {
 	} else {
@@ -755,13 +662,13 @@ char *slurm_get_priority_site_factor_params(void)
 }
 
 /* slurm_get_priority_site_factor_plugin
- * returns the site_factor_plugin value from slurmctld_conf object
+ * returns the site_factor_plugin value from slurm_conf object
  * RET char *    - site_factor_plugin, MUST be xfreed by caller
  */
 char *slurm_get_priority_site_factor_plugin(void)
 {
 	char *plugin = NULL;
-	slurm_ctl_conf_t *conf;
+	slurm_conf_t *conf;
 
 	if (slurmdbd_conf) {
 	} else {
@@ -774,13 +681,13 @@ char *slurm_get_priority_site_factor_plugin(void)
 }
 
 /* slurm_get_priority_type
- * returns the priority type from slurmctld_conf object
+ * returns the priority type from slurm_conf object
  * RET char *    - priority type, MUST be xfreed by caller
  */
 char *slurm_get_priority_type(void)
 {
 	char *priority_type = NULL;
-	slurm_ctl_conf_t *conf;
+	slurm_conf_t *conf;
 
 	if (slurmdbd_conf) {
 	} else {
@@ -793,13 +700,13 @@ char *slurm_get_priority_type(void)
 }
 
 /* slurm_get_priority_weight_age
- * returns the priority weight for age from slurmctld_conf object
+ * returns the priority weight for age from slurm_conf object
  * RET uint32_t - factor weight.
  */
 uint32_t slurm_get_priority_weight_age(void)
 {
 	uint32_t factor = NO_VAL;
-	slurm_ctl_conf_t *conf;
+	slurm_conf_t *conf;
 
 	if (slurmdbd_conf) {
 	} else {
@@ -813,13 +720,13 @@ uint32_t slurm_get_priority_weight_age(void)
 
 
 /* slurm_get_priority_weight_assoc
- * returns the priority weight for association from slurmctld_conf object
+ * returns the priority weight for association from slurm_conf object
  * RET uint32_t - factor weight.
  */
 uint32_t slurm_get_priority_weight_assoc(void)
 {
 	uint32_t factor = NO_VAL;
-	slurm_ctl_conf_t *conf;
+	slurm_conf_t *conf;
 
 	if (slurmdbd_conf) {
 	} else {
@@ -833,13 +740,13 @@ uint32_t slurm_get_priority_weight_assoc(void)
 
 
 /* slurm_get_priority_weight_fairshare
- * returns the priority weight for fairshare from slurmctld_conf object
+ * returns the priority weight for fairshare from slurm_conf object
  * RET uint32_t - factor weight.
  */
 uint32_t slurm_get_priority_weight_fairshare(void)
 {
 	uint32_t factor = NO_VAL;
-	slurm_ctl_conf_t *conf;
+	slurm_conf_t *conf;
 
 	if (slurmdbd_conf) {
 	} else {
@@ -852,13 +759,13 @@ uint32_t slurm_get_priority_weight_fairshare(void)
 }
 
 /* slurm_get_fs_dampening_factor
- * returns the dampening factor for fairshare from slurmctld_conf object
+ * returns the dampening factor for fairshare from slurm_conf object
  * RET uint32_t - factor.
  */
 uint16_t slurm_get_fs_dampening_factor(void)
 {
 	uint16_t factor = 1;
-	slurm_ctl_conf_t *conf;
+	slurm_conf_t *conf;
 
 	if (slurmdbd_conf) {
 	} else {
@@ -871,11 +778,11 @@ uint16_t slurm_get_fs_dampening_factor(void)
 }
 
 /* slurm_set_fs_dampening_factor
- * set the dampening factor for fairshare from slurmctld_conf object
+ * set the dampening factor for fairshare from slurm_conf object
  */
 void slurm_set_fs_dampening_factor(uint16_t factor)
 {
-	slurm_ctl_conf_t *conf;
+	slurm_conf_t *conf;
 
 	if (slurmdbd_conf) {
 	} else {
@@ -885,13 +792,13 @@ void slurm_set_fs_dampening_factor(uint16_t factor)
 	}
 }
 /* slurm_get_priority_weight_job_size
- * returns the priority weight for job size from slurmctld_conf object
+ * returns the priority weight for job size from slurm_conf object
  * RET uint32_t - factor weight.
  */
 uint32_t slurm_get_priority_weight_job_size(void)
 {
 	uint32_t factor = NO_VAL;
-	slurm_ctl_conf_t *conf;
+	slurm_conf_t *conf;
 
 	if (slurmdbd_conf) {
 	} else {
@@ -904,13 +811,13 @@ uint32_t slurm_get_priority_weight_job_size(void)
 }
 
 /* slurm_get_priority_weight_partition
- * returns the priority weight for partitions from slurmctld_conf object
+ * returns the priority weight for partitions from slurm_conf object
  * RET uint32_t - factor weight.
  */
 uint32_t slurm_get_priority_weight_partition(void)
 {
 	uint32_t factor = NO_VAL;
-	slurm_ctl_conf_t *conf;
+	slurm_conf_t *conf;
 
 	if (slurmdbd_conf) {
 	} else {
@@ -924,13 +831,13 @@ uint32_t slurm_get_priority_weight_partition(void)
 
 
 /* slurm_get_priority_weight_qos
- * returns the priority weight for QOS from slurmctld_conf object
+ * returns the priority weight for QOS from slurm_conf object
  * RET uint32_t - factor weight.
  */
 uint32_t slurm_get_priority_weight_qos(void)
 {
 	uint32_t factor = NO_VAL;
-	slurm_ctl_conf_t *conf;
+	slurm_conf_t *conf;
 
 	if (slurmdbd_conf) {
 	} else {
@@ -943,13 +850,13 @@ uint32_t slurm_get_priority_weight_qos(void)
 }
 
 /* slurm_get_priority_weight_tres
- * returns the priority weights for TRES' from slurmctld_conf object
+ * returns the priority weights for TRES' from slurm_conf object
  * RET char * string of configured tres weights. MUST be xfreed by caller
  */
 char *slurm_get_priority_weight_tres(void)
 {
 	char *weights = NULL;
-	slurm_ctl_conf_t *conf;
+	slurm_conf_t *conf;
 
 	if (slurmdbd_conf) {
 	} else {
@@ -962,13 +869,13 @@ char *slurm_get_priority_weight_tres(void)
 }
 
 /* slurm_get_prep_plugins
- * returns the PrEpPlugins from slurmctld_conf object
+ * returns the PrEpPlugins from slurm_conf object
  * RET char *    - PrEpPlugins, MUST be xfreed by caller
  */
 char *slurm_get_prep_plugins(void)
 {
 	char *plugins = NULL;
-	slurm_ctl_conf_t *conf;
+	slurm_conf_t *conf;
 
 	if (slurmdbd_conf) {
 	} else {
@@ -1082,12 +989,12 @@ double *slurm_get_tres_weight_array(char *weights_str, int tres_cnt, bool fail)
 }
 
 /* slurm_get_private_data
- * get private data from slurmctld_conf object
+ * get private data from slurm_conf object
  */
 uint16_t slurm_get_private_data(void)
 {
 	uint16_t private_data = 0;
-	slurm_ctl_conf_t *conf;
+	slurm_conf_t *conf;
 
 	if (slurmdbd_conf) {
 		private_data = slurmdbd_conf->private_data;
@@ -1100,13 +1007,13 @@ uint16_t slurm_get_private_data(void)
 }
 
 /* slurm_get_resume_fail_program
- * returns the ResumeFailProgram from slurmctld_conf object
+ * returns the ResumeFailProgram from slurm_conf object
  * RET char *    - ResumeFailProgram, MUST be xfreed by caller
  */
 char *slurm_get_resume_fail_program(void)
 {
 	char *resume_fail_program = NULL;
-	slurm_ctl_conf_t *conf;
+	slurm_conf_t *conf;
 
 	if (slurmdbd_conf) {
 	} else {
@@ -1118,13 +1025,13 @@ char *slurm_get_resume_fail_program(void)
 }
 
 /* slurm_get_resume_program
- * returns the ResumeProgram from slurmctld_conf object
+ * returns the ResumeProgram from slurm_conf object
  * RET char *    - ResumeProgram, MUST be xfreed by caller
  */
 char *slurm_get_resume_program(void)
 {
 	char *resume_program = NULL;
-	slurm_ctl_conf_t *conf;
+	slurm_conf_t *conf;
 
 	if (slurmdbd_conf) {
 	} else {
@@ -1136,13 +1043,13 @@ char *slurm_get_resume_program(void)
 }
 
 /* slurm_get_state_save_location
- * get state_save_location from slurmctld_conf object from slurmctld_conf object
+ * get state_save_location from slurm_conf object
  * RET char *   - state_save_location directory, MUST be xfreed by caller
  */
 char *slurm_get_state_save_location(void)
 {
 	char *state_save_loc = NULL;
-	slurm_ctl_conf_t *conf;
+	slurm_conf_t *conf;
 
 	if (slurmdbd_conf) {
 	} else {
@@ -1169,13 +1076,13 @@ extern char *slurm_get_stepd_loc(void)
 }
 
 /* slurm_get_tmp_fs
- * returns the TmpFS configuration parameter from slurmctld_conf object
+ * returns the TmpFS configuration parameter from slurm_conf object
  * RET char *    - tmp_fs, MUST be xfreed by caller
  */
 extern char *slurm_get_tmp_fs(char *node_name)
 {
 	char *tmp_fs = NULL;
-	slurm_ctl_conf_t *conf = NULL;
+	slurm_conf_t *conf = NULL;
 
 	if (slurmdbd_conf) {
 	} else {
@@ -1190,33 +1097,14 @@ extern char *slurm_get_tmp_fs(char *node_name)
 	return tmp_fs;
 }
 
-/* slurm_get_auth_alt_types
- * returns the alternate authentication types from slurmctld_conf object
- * RET char *    - auth alternate types, MUST be xfreed by caller
- */
-char *slurm_get_auth_alt_types(void)
-{
-	char *auth_alt_types = NULL;
-	slurm_ctl_conf_t *conf = NULL;
-
-	if (slurmdbd_conf) {
-		auth_alt_types = xstrdup(slurmdbd_conf->auth_alt_types);
-	} else {
-		conf = slurm_conf_lock();
-		auth_alt_types = xstrdup(conf->authalttypes);
-		slurm_conf_unlock();
-	}
-	return auth_alt_types;
-}
-
 /* slurm_get_auth_type
- * returns the authentication type from slurmctld_conf object
+ * returns the authentication type from slurm_conf object
  * RET char *    - auth type, MUST be xfreed by caller
  */
 char *slurm_get_auth_type(void)
 {
 	char *auth_type = NULL;
-	slurm_ctl_conf_t *conf = NULL;
+	slurm_conf_t *conf = NULL;
 
 	if (slurmdbd_conf) {
 		auth_type = xstrdup(slurmdbd_conf->auth_type);
@@ -1229,13 +1117,13 @@ char *slurm_get_auth_type(void)
 }
 
 /* slurm_get_bb_type
- * returns the BurstBufferType (bb_type) from slurmctld_conf object
+ * returns the BurstBufferType (bb_type) from slurm_conf object
  * RET char *    - BurstBufferType, MUST be xfreed by caller
  */
 extern char *slurm_get_bb_type(void)
 {
 	char *bb_type = NULL;
-	slurm_ctl_conf_t *conf = NULL;
+	slurm_conf_t *conf = NULL;
 
 	if (slurmdbd_conf) {
 	} else {
@@ -1247,13 +1135,13 @@ extern char *slurm_get_bb_type(void)
 }
 
 /* slurm_get_cluster_name
- * returns the cluster name from slurmctld_conf object
+ * returns the cluster name from slurm_conf object
  * RET char *    - cluster name,  MUST be xfreed by caller
  */
 char *slurm_get_cluster_name(void)
 {
 	char *name = NULL;
-	slurm_ctl_conf_t *conf;
+	slurm_conf_t *conf;
 
 	if (slurmdbd_conf) {
 	} else {
@@ -1265,13 +1153,13 @@ char *slurm_get_cluster_name(void)
 }
 
 /* slurm_get_comm_parameters
- * returns the value of comm_param in slurmctld_conf object
+ * returns the value of comm_param in slurm_conf object
  * RET char *    - comm parameters, MUST be xfreed by caller
  */
 extern char *slurm_get_comm_parameters(void)
 {
 	char *comm_params = NULL;
-	slurm_ctl_conf_t *conf;
+	slurm_conf_t *conf;
 
 	if (slurmdbd_conf) {
 	} else {
@@ -1284,13 +1172,13 @@ extern char *slurm_get_comm_parameters(void)
 
 
 /* slurm_get_cred_type
- * returns the cred_type from slurmctld_conf object
+ * returns the cred_type from slurm_conf object
  * RET char *    - cred type, MUST be xfreed by caller
  */
 extern char *slurm_get_cred_type(void)
 {
 	char *cred_type = NULL;
-	slurm_ctl_conf_t *conf;
+	slurm_conf_t *conf;
 
 	if (slurmdbd_conf) {
 	} else {
@@ -1302,13 +1190,13 @@ extern char *slurm_get_cred_type(void)
 }
 
 /* slurm_get_power_parameters
- * returns the PowerParameters from slurmctld_conf object
+ * returns the PowerParameters from slurm_conf object
  * RET char *    - PowerParameters, MUST be xfreed by caller
  */
 extern char *slurm_get_power_parameters(void)
 {
 	char *power_parameters = NULL;
-	slurm_ctl_conf_t *conf;
+	slurm_conf_t *conf;
 
 	if (slurmdbd_conf) {
 	} else {
@@ -1324,7 +1212,7 @@ extern char *slurm_get_power_parameters(void)
  */
 extern void slurm_set_power_parameters(char *power_parameters)
 {
-	slurm_ctl_conf_t *conf;
+	slurm_conf_t *conf;
 
 	if (slurmdbd_conf) {
 	} else {
@@ -1336,13 +1224,13 @@ extern void slurm_set_power_parameters(char *power_parameters)
 }
 
 /* slurm_get_power_plugin
- * returns the PowerPlugin from slurmctld_conf object
+ * returns the PowerPlugin from slurm_conf object
  * RET char *    - PowerPlugin, MUST be xfreed by caller
  */
 extern char *slurm_get_power_plugin(void)
 {
 	char *power_plugin = NULL;
-	slurm_ctl_conf_t *conf;
+	slurm_conf_t *conf;
 
 	if (slurmdbd_conf) {
 	} else {
@@ -1354,13 +1242,13 @@ extern char *slurm_get_power_plugin(void)
 }
 
 /* slurm_get_topology_param
- * returns the value of topology_param in slurmctld_conf object
+ * returns the value of topology_param in slurm_conf object
  * RET char *    - topology parameters, MUST be xfreed by caller
  */
 extern char * slurm_get_topology_param(void)
 {
 	char *topology_param = NULL;
-	slurm_ctl_conf_t *conf;
+	slurm_conf_t *conf;
 
 	if (slurmdbd_conf) {
 	} else {
@@ -1372,13 +1260,13 @@ extern char * slurm_get_topology_param(void)
 }
 
 /* slurm_get_topology_plugin
- * returns the value of topology_plugin in slurmctld_conf object
+ * returns the value of topology_plugin in slurm_conf object
  * RET char *    - topology type, MUST be xfreed by caller
  */
 extern char * slurm_get_topology_plugin(void)
 {
 	char *topology_plugin = NULL;
-	slurm_ctl_conf_t *conf;
+	slurm_conf_t *conf;
 
 	if (slurmdbd_conf) {
 	} else {
@@ -1390,12 +1278,12 @@ extern char * slurm_get_topology_plugin(void)
 }
 
 /* slurm_get_propagate_prio_process
- * return the PropagatePrioProcess flag from slurmctld_conf object
+ * return the PropagatePrioProcess flag from slurm_conf object
  */
 extern uint16_t slurm_get_propagate_prio_process(void)
 {
 	uint16_t propagate_prio = 0;
-	slurm_ctl_conf_t *conf;
+	slurm_conf_t *conf;
 
  	if (slurmdbd_conf) {
 	} else {
@@ -1407,13 +1295,13 @@ extern uint16_t slurm_get_propagate_prio_process(void)
 }
 
 /* slurm_get_route_plugin
- * returns the value of route_plugin in slurmctld_conf object
+ * returns the value of route_plugin in slurm_conf object
  * RET char *    - route type, MUST be xfreed by caller
  */
 extern char * slurm_get_route_plugin(void)
 {
 	char *route_plugin = NULL;
-	slurm_ctl_conf_t *conf;
+	slurm_conf_t *conf;
 
 	if (slurmdbd_conf) {
 	} else {
@@ -1426,12 +1314,12 @@ extern char * slurm_get_route_plugin(void)
 }
 
 /* slurm_get_track_wckey
- * returns the value of track_wckey in slurmctld_conf object
+ * returns the value of track_wckey in slurm_conf object
  */
 extern uint16_t slurm_get_track_wckey(void)
 {
 	uint16_t track_wckey = 0;
-	slurm_ctl_conf_t *conf;
+	slurm_conf_t *conf;
 
 	if (slurmdbd_conf) {
 		track_wckey = slurmdbd_conf->track_wckey;
@@ -1444,12 +1332,12 @@ extern uint16_t slurm_get_track_wckey(void)
 }
 
 /* slurm_set_tree_width
- * sets the value of tree_width in slurmctld_conf object
+ * sets the value of tree_width in slurm_conf object
  * RET 0 or error code
  */
 extern int slurm_set_tree_width(uint16_t tree_width)
 {
-	slurm_ctl_conf_t *conf;
+	slurm_conf_t *conf;
 
 	if (slurmdbd_conf) {
 	} else {
@@ -1464,14 +1352,14 @@ extern int slurm_set_tree_width(uint16_t tree_width)
 	return 0;
 }
 /* slurm_get_tree_width
- * returns the value of tree_width in slurmctld_conf object
+ * returns the value of tree_width in slurm_conf object
  */
 extern uint16_t slurm_get_tree_width(void)
 {
 	/* initialize to 1 to silence later warnings
 	 * about potential division by zero */
 	uint16_t tree_width = 1;
-	slurm_ctl_conf_t *conf;
+	slurm_conf_t *conf;
 
 	if (slurmdbd_conf) {
 	} else {
@@ -1483,12 +1371,12 @@ extern uint16_t slurm_get_tree_width(void)
 }
 
 /* slurm_get_vsize_factor
- * returns the value of vsize_factor in slurmctld_conf object
+ * returns the value of vsize_factor in slurm_conf object
  */
 extern uint16_t slurm_get_vsize_factor(void)
 {
 	uint16_t vsize_factor = 0;
-	slurm_ctl_conf_t *conf;
+	slurm_conf_t *conf;
 
 	if (slurmdbd_conf) {
 	} else {
@@ -1500,13 +1388,13 @@ extern uint16_t slurm_get_vsize_factor(void)
 }
 
 /* slurm_set_auth_type
- * set the authentication type in slurmctld_conf object
+ * set the authentication type in slurm_conf object
  * used for security testing purposes
  * RET 0 or error code
  */
 extern int slurm_set_auth_type(char *auth_type)
 {
-	slurm_ctl_conf_t *conf;
+	slurm_conf_t *conf;
 
 	if (slurmdbd_conf) {
 		xfree(slurmdbd_conf->auth_type);
@@ -1521,14 +1409,14 @@ extern int slurm_set_auth_type(char *auth_type)
 }
 
 /* slurm_get_hash_val
- * get hash val of the slurm.conf from slurmctld_conf object from
- * slurmctld_conf object
+ * get hash val of the slurm.conf from slurm_conf object from
+ * slurm_conf object
  * RET uint32_t  - hash_val
  */
 uint32_t slurm_get_hash_val(void)
 {
 	uint32_t hash_val;
-	slurm_ctl_conf_t *conf;
+	slurm_conf_t *conf;
 
 	if (slurmdbd_conf) {
 		hash_val = NO_VAL;
@@ -1541,14 +1429,14 @@ uint32_t slurm_get_hash_val(void)
 }
 
 /* slurm_get_health_check_program
- * get health_check_program from slurmctld_conf object from
- * slurmctld_conf object
+ * get health_check_program from slurm_conf object from
+ * slurm_conf object
  * RET char *   - health_check_program, MUST be xfreed by caller
  */
 char *slurm_get_health_check_program(void)
 {
 	char *health_check_program = NULL;
-	slurm_ctl_conf_t *conf;
+	slurm_conf_t *conf;
 
 	if (slurmdbd_conf) {
 	} else {
@@ -1560,14 +1448,14 @@ char *slurm_get_health_check_program(void)
 }
 
 /* slurm_get_gres_plugins
- * get gres_plugins from slurmctld_conf object from
- * slurmctld_conf object
+ * get gres_plugins from slurm_conf object from
+ * slurm_conf object
  * RET char *   - gres_plugins, MUST be xfreed by caller
  */
 char *slurm_get_gres_plugins(void)
 {
 	char *gres_plugins = NULL;
-	slurm_ctl_conf_t *conf;
+	slurm_conf_t *conf;
 
 	if (slurmdbd_conf) {
 	} else {
@@ -1579,14 +1467,14 @@ char *slurm_get_gres_plugins(void)
 }
 
 /* slurm_get_job_submit_plugins
- * get job_submit_plugins from slurmctld_conf object from
- * slurmctld_conf object
+ * get job_submit_plugins from slurm_conf object from
+ * slurm_conf object
  * RET char *   - job_submit_plugins, MUST be xfreed by caller
  */
 char *slurm_get_job_submit_plugins(void)
 {
 	char *job_submit_plugins = NULL;
-	slurm_ctl_conf_t *conf;
+	slurm_conf_t *conf;
 
 	if (slurmdbd_conf) {
 	} else {
@@ -1598,14 +1486,14 @@ char *slurm_get_job_submit_plugins(void)
 }
 
 /* slurm_get_cli_filter_plugins
- * get cli_filter_plugins from slurmctld_conf object from
- * slurmctld_conf object
+ * get cli_filter_plugins from slurm_conf object from
+ * slurm_conf object
  * RET char *   - cli_filter_plugins, MUST be xfreed by caller
  */
 char *slurm_get_cli_filter_plugins(void)
 {
 	char *cli_filter_plugins = NULL;
-	slurm_ctl_conf_t *conf;
+	slurm_conf_t *conf;
 
 	if (slurmdbd_conf) {
 	} else {
@@ -1617,13 +1505,13 @@ char *slurm_get_cli_filter_plugins(void)
 }
 
 /* slurm_get_slurmctld_logfile
- * get slurmctld_logfile from slurmctld_conf object from slurmctld_conf object
+ * get slurmctld_logfile from slurm_conf object
  * RET char *   - slurmctld_logfile, MUST be xfreed by caller
  */
 char *slurm_get_job_slurmctld_logfile(void)
 {
 	char *slurmctld_logfile = NULL;
-	slurm_ctl_conf_t *conf;
+	slurm_conf_t *conf;
 
 	if (slurmdbd_conf) {
 	} else {
@@ -1635,13 +1523,13 @@ char *slurm_get_job_slurmctld_logfile(void)
 }
 
 /* slurm_get_node_features_plugins
- * get node_features_plugins from slurmctld_conf object
+ * get node_features_plugins from slurm_conf object
  * RET char *   - knl_plugins, MUST be xfreed by caller
  */
 char *slurm_get_node_features_plugins(void)
 {
 	char *knl_plugins = NULL;
-	slurm_ctl_conf_t *conf;
+	slurm_conf_t *conf;
 
 	if (slurmdbd_conf) {
 	} else {
@@ -1653,14 +1541,14 @@ char *slurm_get_node_features_plugins(void)
 }
 
 /* slurm_get_slurmctld_plugstack
- * get slurmctld_plugstack from slurmctld_conf object from
- * slurmctld_conf object
+ * get slurmctld_plugstack from slurm_conf object from
+ * slurm_conf object
  * RET char *   - slurmctld_plugstack, MUST be xfreed by caller
  */
 char *slurm_get_slurmctld_plugstack(void)
 {
 	char *slurmctld_plugstack = NULL;
-	slurm_ctl_conf_t *conf;
+	slurm_conf_t *conf;
 
 	if (slurmdbd_conf) {
 	} else {
@@ -1672,14 +1560,14 @@ char *slurm_get_slurmctld_plugstack(void)
 }
 
 /* slurm_get_slurmctld_timeout
- * get slurmctld_timeout from slurmctld_conf object from
- * slurmctld_conf object
+ * get slurmctld_timeout from slurm_conf object from
+ * slurm_conf object
  * RET uint16_t - slurmctld timeout in seconds
  */
 uint16_t slurm_get_slurmctld_timeout(void)
 {
 	uint16_t slurmctld_timeout = 0;
-	slurm_ctl_conf_t *conf;
+	slurm_conf_t *conf;
 
 	if (slurmdbd_conf) {
 	} else {
@@ -1690,34 +1578,14 @@ uint16_t slurm_get_slurmctld_timeout(void)
 	return slurmctld_timeout;
 }
 
-/* slurm_get_accounting_storage_type
- * returns the accounting storage type from slurmctld_conf object
- * RET char *    - accounting storage type,  MUST be xfreed by caller
- */
-char *slurm_get_accounting_storage_type(void)
-{
-	char *accounting_type;
-	slurm_ctl_conf_t *conf;
-
-	if (slurmdbd_conf) {
-		accounting_type = xstrdup(slurmdbd_conf->storage_type);
-	} else {
-		conf = slurm_conf_lock();
-		accounting_type = xstrdup(conf->accounting_storage_type);
-		slurm_conf_unlock();
-	}
-	return accounting_type;
-
-}
-
 /* slurm_get_accounting_storage_tres
- * returns the accounting storage tres from slurmctld_conf object
+ * returns the accounting storage tres from slurm_conf object
  * RET char *    - accounting storage tres,  MUST be xfreed by caller
  */
 char *slurm_get_accounting_storage_tres(void)
 {
 	char *accounting_tres;
-	slurm_ctl_conf_t *conf;
+	slurm_conf_t *conf;
 
 	if (slurmdbd_conf) {
 		accounting_tres = NULL;
@@ -1731,12 +1599,12 @@ char *slurm_get_accounting_storage_tres(void)
 }
 
 /* slurm_set_accounting_storage_tres
- * sets the value of accounting_storage_tres in slurmctld_conf object
+ * sets the value of accounting_storage_tres in slurm_conf object
  * RET 0 or error_code
  */
 extern int slurm_set_accounting_storage_tres(char *tres)
 {
-	slurm_ctl_conf_t *conf;
+	slurm_conf_t *conf;
 
 	if (slurmdbd_conf) {
 	} else {
@@ -1750,13 +1618,13 @@ extern int slurm_set_accounting_storage_tres(char *tres)
 }
 
 /* slurm_get_accounting_storage_user
- * returns the storage user from slurmctld_conf object
+ * returns the storage user from slurm_conf object
  * RET char *    - storage user,  MUST be xfreed by caller
  */
 char *slurm_get_accounting_storage_user(void)
 {
 	char *storage_user;
-	slurm_ctl_conf_t *conf;
+	slurm_conf_t *conf;
 
 	if (slurmdbd_conf) {
 		storage_user = xstrdup(slurmdbd_conf->storage_user);
@@ -1768,34 +1636,14 @@ char *slurm_get_accounting_storage_user(void)
 	return storage_user;
 }
 
-/* slurm_set_accounting_storage_user
- * IN: char *user (name of file or database)
- * RET 0 or error code
- */
-int slurm_set_accounting_storage_user(char *user)
-{
-	slurm_ctl_conf_t *conf;
-
-	if (slurmdbd_conf) {
-		xfree(slurmdbd_conf->storage_user);
-		slurmdbd_conf->storage_user = xstrdup(user);
-	} else {
-		conf = slurm_conf_lock();
-		xfree(conf->accounting_storage_user);
-		conf->accounting_storage_user = xstrdup(user);
-		slurm_conf_unlock();
-	}
-	return 0;
-}
-
 /* slurm_get_accounting_storage_backup_host
- * returns the storage backup host from slurmctld_conf object
+ * returns the storage backup host from slurm_conf object
  * RET char *    - storage backup host,  MUST be xfreed by caller
  */
 char *slurm_get_accounting_storage_backup_host(void)
 {
 	char *storage_host;
-	slurm_ctl_conf_t *conf;
+	slurm_conf_t *conf;
 
 	if (slurmdbd_conf) {
 		storage_host = xstrdup(slurmdbd_conf->storage_backup_host);
@@ -1810,7 +1658,7 @@ char *slurm_get_accounting_storage_backup_host(void)
 char *slurm_get_accounting_storage_ext_host(void)
 {
 	char *ext_host = NULL;
-	slurm_ctl_conf_t *conf;
+	slurm_conf_t *conf;
 
 	if (slurmdbd_conf) {
 	} else {
@@ -1822,13 +1670,13 @@ char *slurm_get_accounting_storage_ext_host(void)
 }
 
 /* slurm_get_accounting_storage_host
- * returns the storage host from slurmctld_conf object
+ * returns the storage host from slurm_conf object
  * RET char *    - storage host,  MUST be xfreed by caller
  */
 char *slurm_get_accounting_storage_host(void)
 {
 	char *storage_host;
-	slurm_ctl_conf_t *conf;
+	slurm_conf_t *conf;
 
 	if (slurmdbd_conf) {
 		storage_host = xstrdup(slurmdbd_conf->storage_host);
@@ -1840,34 +1688,14 @@ char *slurm_get_accounting_storage_host(void)
 	return storage_host;
 }
 
-/* slurm_set_accounting_storage_host
- * IN: char *host (name of file or database)
- * RET 0 or error code
- */
-int slurm_set_accounting_storage_host(char *host)
-{
-	slurm_ctl_conf_t *conf;
-
-	if (slurmdbd_conf) {
-		xfree(slurmdbd_conf->storage_host);
-		slurmdbd_conf->storage_host = xstrdup(host);
-	} else {
-		conf = slurm_conf_lock();
-		xfree(conf->accounting_storage_host);
-		conf->accounting_storage_host = xstrdup(host);
-		slurm_conf_unlock();
-	}
-	return 0;
-}
-
 /* slurm_get_accounting_storage_loc
- * returns the storage location from slurmctld_conf object
+ * returns the storage location from slurm_conf object
  * RET char *    - storage location,  MUST be xfreed by caller
  */
 char *slurm_get_accounting_storage_loc(void)
 {
 	char *storage_loc;
-	slurm_ctl_conf_t *conf;
+	slurm_conf_t *conf;
 
 	if (slurmdbd_conf) {
 		storage_loc = xstrdup(slurmdbd_conf->storage_loc);
@@ -1885,7 +1713,7 @@ char *slurm_get_accounting_storage_loc(void)
  */
 int slurm_set_accounting_storage_loc(char *loc)
 {
-	slurm_ctl_conf_t *conf;
+	slurm_conf_t *conf;
 
 	if (slurmdbd_conf) {
 		xfree(slurmdbd_conf->storage_loc);
@@ -1905,7 +1733,7 @@ int slurm_set_accounting_storage_loc(char *loc)
 uint16_t slurm_get_accounting_storage_enforce(void)
 {
 	uint16_t enforce = 0;
-	slurm_ctl_conf_t *conf;
+	slurm_conf_t *conf;
 
 	if (slurmdbd_conf) {
 	} else {
@@ -1917,37 +1745,27 @@ uint16_t slurm_get_accounting_storage_enforce(void)
 
 }
 
-/* slurm_get_is_association_based_accounting
- * returns if we are doing accounting by associations
+/* slurm_with_slurmdbd
+ * returns true if operating with slurmdbd
  */
-int slurm_get_is_association_based_accounting(void)
+bool slurm_with_slurmdbd(void)
 {
-	int enforce = 0;
-	slurm_ctl_conf_t *conf;
-
-	if (slurmdbd_conf) {
-		return 1;
-	} else {
-		conf = slurm_conf_lock();
-		if (!xstrcasecmp(conf->accounting_storage_type,
-				 "accounting_storage/slurmdbd") ||
-		    !xstrcasecmp(conf->accounting_storage_type,
-				 "accounting_storage/mysql"))
-			enforce = 1;
-		slurm_conf_unlock();
-	}
-	return enforce;
-
+	bool with_slurmdbd;
+	slurm_conf_t *conf = slurm_conf_lock();
+	with_slurmdbd = !xstrcasecmp(conf->accounting_storage_type,
+	                             "accounting_storage/slurmdbd");
+	slurm_conf_unlock();
+	return with_slurmdbd;
 }
 
 /* slurm_get_accounting_storage_pass
- * returns the storage password from slurmctld_conf object
+ * returns the storage password from slurm_conf object
  * RET char *    - storage password,  MUST be xfreed by caller
  */
 char *slurm_get_accounting_storage_pass(void)
 {
 	char *storage_pass;
-	slurm_ctl_conf_t *conf;
+	slurm_conf_t *conf;
 
 	if (slurmdbd_conf) {
 		storage_pass = xstrdup(slurmdbd_conf->storage_pass);
@@ -1960,13 +1778,13 @@ char *slurm_get_accounting_storage_pass(void)
 }
 
 /* slurm_get_auth_info
- * returns the auth_info from slurmctld_conf object (AuthInfo parameter)
+ * returns the auth_info from slurm_conf object (AuthInfo parameter)
  * RET char * - AuthInfo value,  MUST be xfreed by caller
  */
 extern char *slurm_get_auth_info(void)
 {
 	char *auth_info;
-	slurm_ctl_conf_t *conf;
+	slurm_conf_t *conf;
 
 	if (slurmdbd_conf) {
 		auth_info = xstrdup(slurmdbd_conf->auth_info);
@@ -2016,7 +1834,7 @@ extern char *slurm_auth_opts_to_socket(char *opts)
 char *slurm_get_sbcast_parameters(void)
 {
 	char *sbcast_parameters = NULL;
-	slurm_ctl_conf_t *conf;
+	slurm_conf_t *conf;
 
 	if (!slurmdbd_conf) {
 		conf = slurm_conf_lock();
@@ -2058,7 +1876,7 @@ extern int slurm_get_auth_ttl(void)
 }
 
 /* _global_auth_key
- * returns the storage password from slurmctld_conf or slurmdbd_conf object
+ * returns the storage password from slurm_conf or slurmdbd_conf object
  * cache value in local buffer for best performance
  * RET char *    - storage password
  */
@@ -2080,7 +1898,7 @@ static char *_global_auth_key(void)
 			storage_pass_ptr = storage_pass;
 		}
 	} else {
-		slurm_ctl_conf_t *conf = slurm_conf_lock();
+		slurm_conf_t *conf = slurm_conf_lock();
 		if (conf->accounting_storage_pass) {
 			if (strlcpy(storage_pass, conf->accounting_storage_pass,
 				    sizeof(storage_pass))
@@ -2095,49 +1913,6 @@ static char *_global_auth_key(void)
 	return storage_pass_ptr;
 }
 
-/* slurm_get_accounting_storage_port
- * returns the storage port from slurmctld_conf object
- * RET uint32_t   - storage port
- */
-uint32_t slurm_get_accounting_storage_port(void)
-{
-	uint32_t storage_port;
-	slurm_ctl_conf_t *conf;
-
-	if (slurmdbd_conf) {
-		storage_port = slurmdbd_conf->storage_port;
-	} else {
-		conf = slurm_conf_lock();
-		storage_port = conf->accounting_storage_port;
-		slurm_conf_unlock();
-	}
-	return storage_port;
-
-}
-
-/* slurm_set_accounting_storage_port
- * sets the storage port in slurmctld_conf object
- * RET 0 or error code
- */
-int slurm_set_accounting_storage_port(uint32_t storage_port)
-{
-	slurm_ctl_conf_t *conf;
-
-	if (slurmdbd_conf) {
-		slurmdbd_conf->storage_port = storage_port;
-	} else {
-		conf = slurm_conf_lock();
-		if (storage_port == 0) {
-			error("can't have storage port of 0");
-			return SLURM_ERROR;
-		}
-
-		conf->accounting_storage_port = storage_port;
-		slurm_conf_unlock();
-	}
-	return 0;
-}
-
 /*
  * slurm_get_dependency_params
  * RET dependency_params must be xfreed by caller
@@ -2145,7 +1920,7 @@ int slurm_set_accounting_storage_port(uint32_t storage_port)
 char *slurm_get_dependency_params(void)
 {
 	char *dependency_params = NULL;
-	slurm_ctl_conf_t *conf;
+	slurm_conf_t *conf;
 
 	if (slurmdbd_conf) {
 	} else {
@@ -2157,13 +1932,13 @@ char *slurm_get_dependency_params(void)
 }
 
 /* slurm_get_preempt_mode
- * returns the PreemptMode value from slurmctld_conf object
+ * returns the PreemptMode value from slurm_conf object
  * RET uint16_t   - PreemptMode value (See PREEMPT_MODE_* in slurm.h)
  */
 uint16_t slurm_get_preempt_mode(void)
 {
 	uint16_t preempt_mode = 0;
-	slurm_ctl_conf_t *conf;
+	slurm_conf_t *conf;
 
 	if (slurmdbd_conf) {
 	} else {
@@ -2175,13 +1950,13 @@ uint16_t slurm_get_preempt_mode(void)
 }
 
 /* slurm_get_jobacct_gather_type
- * returns the job accounting type from the slurmctld_conf object
+ * returns the job accounting type from the slurm_conf object
  * RET char *    - job accounting type,  MUST be xfreed by caller
  */
 char *slurm_get_jobacct_gather_type(void)
 {
 	char *jobacct_type = NULL;
-	slurm_ctl_conf_t *conf;
+	slurm_conf_t *conf;
 
 	if (slurmdbd_conf) {
 	} else {
@@ -2193,13 +1968,13 @@ char *slurm_get_jobacct_gather_type(void)
 }
 
 /* slurm_get_jobacct_gather_params
- * returns the job accounting params from the slurmctld_conf object
+ * returns the job accounting params from the slurm_conf object
  * RET char *    - job accounting params,  MUST be xfreed by caller
  */
 char *slurm_get_jobacct_gather_params(void)
 {
 	char *jobacct_params = NULL;
-	slurm_ctl_conf_t *conf;
+	slurm_conf_t *conf;
 
 	if (slurmdbd_conf) {
 	} else {
@@ -2211,14 +1986,14 @@ char *slurm_get_jobacct_gather_params(void)
 }
 
 /* slurm_get_job_acct_oom_kill
- * returns the job_acct_oom_kill setting from the slurmctld_conf object
+ * returns the job_acct_oom_kill setting from the slurm_conf object
  * which represents the value of the OverMemoryKill flag.
  * RET bool *    - job_acct_oom_kill parameter
  */
 bool slurm_get_job_acct_oom_kill(void)
 {
         uint16_t enabled = 0;
-	slurm_ctl_conf_t *conf;
+	slurm_conf_t *conf;
 
 	if (slurmdbd_conf) {
 	} else {
@@ -2230,13 +2005,13 @@ bool slurm_get_job_acct_oom_kill(void)
 }
 
 /* slurm_get_jobacct_freq
- * returns the job accounting poll frequency from the slurmctld_conf object
+ * returns the job accounting poll frequency from the slurm_conf object
  * RET int    - job accounting frequency
  */
 char *slurm_get_jobacct_gather_freq(void)
 {
 	char *freq = NULL;
-	slurm_ctl_conf_t *conf;
+	slurm_conf_t *conf;
 
 	if (slurmdbd_conf) {
 	} else {
@@ -2248,13 +2023,13 @@ char *slurm_get_jobacct_gather_freq(void)
 }
 
 /* slurm_get_energy_accounting_type
- * get EnergyAccountingType from slurmctld_conf object
+ * get EnergyAccountingType from slurm_conf object
  * RET char *   - energy_accounting type, MUST be xfreed by caller
  */
 char *slurm_get_acct_gather_energy_type(void)
 {
 	char *acct_gather_energy_type = NULL;
-	slurm_ctl_conf_t *conf;
+	slurm_conf_t *conf;
 
 	if (slurmdbd_conf) {
 	} else {
@@ -2267,13 +2042,13 @@ char *slurm_get_acct_gather_energy_type(void)
 }
 
 /* slurm_get_profile_accounting_type
- * get ProfileAccountingType from slurmctld_conf object
+ * get ProfileAccountingType from slurm_conf object
  * RET char *   - profile_accounting type, MUST be xfreed by caller
  */
 char *slurm_get_acct_gather_profile_type(void)
 {
 	char *acct_gather_profile_type = NULL;
-	slurm_ctl_conf_t *conf;
+	slurm_conf_t *conf;
 
 	if (slurmdbd_conf) {
 	} else {
@@ -2286,13 +2061,13 @@ char *slurm_get_acct_gather_profile_type(void)
 }
 
 /* slurm_get_interconnect_accounting_type
- * get InterconnectAccountingType from slurmctld_conf object
+ * get InterconnectAccountingType from slurm_conf object
  * RET char *   - interconnect_accounting type, MUST be xfreed by caller
  */
 char *slurm_get_acct_gather_interconnect_type(void)
 {
 	char *acct_gather_interconnect_type = NULL;
-	slurm_ctl_conf_t *conf;
+	slurm_conf_t *conf;
 
 	if (slurmdbd_conf) {
 	} else {
@@ -2305,13 +2080,13 @@ char *slurm_get_acct_gather_interconnect_type(void)
 }
 
 /* slurm_get_filesystem_accounting_type
- * get FilesystemAccountingType from slurmctld_conf object
+ * get FilesystemAccountingType from slurm_conf object
  * RET char *   - filesystem_accounting type, MUST be xfreed by caller
  */
 char *slurm_get_acct_gather_filesystem_type(void)
 {
 	char *acct_gather_filesystem_type = NULL;
-	slurm_ctl_conf_t *conf;
+	slurm_conf_t *conf;
 
 	if (slurmdbd_conf) {
 	} else {
@@ -2327,7 +2102,7 @@ char *slurm_get_acct_gather_filesystem_type(void)
 extern uint16_t slurm_get_acct_gather_node_freq(void)
 {
 	uint16_t freq = 0;
-	slurm_ctl_conf_t *conf;
+	slurm_conf_t *conf;
 
 	if (slurmdbd_conf) {
 	} else {
@@ -2339,13 +2114,13 @@ extern uint16_t slurm_get_acct_gather_node_freq(void)
 }
 
 /* slurm_get_ext_sensors_type
- * get ExtSensorsType from slurmctld_conf object
+ * get ExtSensorsType from slurm_conf object
  * RET char *   - ext_sensors type, MUST be xfreed by caller
  */
 char *slurm_get_ext_sensors_type(void)
 {
 	char *ext_sensors_type = NULL;
-	slurm_ctl_conf_t *conf;
+	slurm_conf_t *conf;
 
 	if (slurmdbd_conf) {
 	} else {
@@ -2360,7 +2135,7 @@ char *slurm_get_ext_sensors_type(void)
 extern uint16_t slurm_get_ext_sensors_freq(void)
 {
 	uint16_t freq = 0;
-	slurm_ctl_conf_t *conf;
+	slurm_conf_t *conf;
 
 	if (slurmdbd_conf) {
 	} else {
@@ -2378,7 +2153,7 @@ extern uint16_t slurm_get_ext_sensors_freq(void)
 char *slurm_get_gpu_freq_def(void)
 {
 	char *gpu_freq_def = NULL;
-	slurm_ctl_conf_t *conf;
+	slurm_conf_t *conf;
 
 	if (slurmdbd_conf) {
 	} else {
@@ -2391,13 +2166,13 @@ char *slurm_get_gpu_freq_def(void)
 
 /*
  * slurm_get_jobcomp_type
- * returns the job completion logger type from slurmctld_conf object
+ * returns the job completion logger type from slurm_conf object
  * RET char *    - job completion type,  MUST be xfreed by caller
  */
 char *slurm_get_jobcomp_type(void)
 {
 	char *jobcomp_type = NULL;
-	slurm_ctl_conf_t *conf;
+	slurm_conf_t *conf;
 
 	if (slurmdbd_conf) {
 	} else {
@@ -2409,13 +2184,13 @@ char *slurm_get_jobcomp_type(void)
 }
 
 /* slurm_get_jobcomp_loc
- * returns the job completion loc from slurmctld_conf object
+ * returns the job completion loc from slurm_conf object
  * RET char *    - job completion location,  MUST be xfreed by caller
  */
 char *slurm_get_jobcomp_loc(void)
 {
 	char *jobcomp_loc = 0;
-	slurm_ctl_conf_t *conf;
+	slurm_conf_t *conf;
 
 	if (slurmdbd_conf) {
 	} else {
@@ -2427,13 +2202,13 @@ char *slurm_get_jobcomp_loc(void)
 }
 
 /* slurm_get_jobcomp_user
- * returns the storage user from slurmctld_conf object
+ * returns the storage user from slurm_conf object
  * RET char *    - storage user,  MUST be xfreed by caller
  */
 char *slurm_get_jobcomp_user(void)
 {
 	char *storage_user = NULL;
-	slurm_ctl_conf_t *conf;
+	slurm_conf_t *conf;
 
 	if (slurmdbd_conf) {
 	} else {
@@ -2445,13 +2220,13 @@ char *slurm_get_jobcomp_user(void)
 }
 
 /* slurm_get_jobcomp_host
- * returns the storage host from slurmctld_conf object
+ * returns the storage host from slurm_conf object
  * RET char *    - storage host,  MUST be xfreed by caller
  */
 char *slurm_get_jobcomp_host(void)
 {
 	char *storage_host = NULL;
-	slurm_ctl_conf_t *conf;
+	slurm_conf_t *conf;
 
 	if (slurmdbd_conf) {
 	} else {
@@ -2465,7 +2240,7 @@ char *slurm_get_jobcomp_host(void)
 char *slurm_get_jobcomp_params(void)
 {
 	char *param = NULL;
-	slurm_ctl_conf_t *conf;
+	slurm_conf_t *conf;
 
 	if (slurmdbd_conf) {
 	} else {
@@ -2477,13 +2252,13 @@ char *slurm_get_jobcomp_params(void)
 }
 
 /* slurm_get_jobcomp_pass
- * returns the storage password from slurmctld_conf object
+ * returns the storage password from slurm_conf object
  * RET char *    - storage password,  MUST be xfreed by caller
  */
 char *slurm_get_jobcomp_pass(void)
 {
 	char *storage_pass = NULL;
-	slurm_ctl_conf_t *conf;
+	slurm_conf_t *conf;
 
 	if (slurmdbd_conf) {
 	} else {
@@ -2495,13 +2270,13 @@ char *slurm_get_jobcomp_pass(void)
 }
 
 /* slurm_get_jobcomp_port
- * returns the storage port from slurmctld_conf object
+ * returns the storage port from slurm_conf object
  * RET uint32_t   - storage port
  */
 uint32_t slurm_get_jobcomp_port(void)
 {
 	uint32_t storage_port = 0;
-	slurm_ctl_conf_t *conf;
+	slurm_conf_t *conf;
 
 	if (slurmdbd_conf) {
 	} else {
@@ -2514,12 +2289,12 @@ uint32_t slurm_get_jobcomp_port(void)
 }
 
 /* slurm_set_jobcomp_port
- * sets the jobcomp port in slurmctld_conf object
+ * sets the jobcomp port in slurm_conf object
  * RET 0 or error code
  */
 int slurm_set_jobcomp_port(uint32_t port)
 {
-	slurm_ctl_conf_t *conf;
+	slurm_conf_t *conf;
 
 	if (slurmdbd_conf) {
 	} else {
@@ -2536,13 +2311,13 @@ int slurm_set_jobcomp_port(uint32_t port)
 }
 
 /* slurm_get_keep_alive_time
- * returns keep_alive_time slurmctld_conf object
+ * returns keep_alive_time slurm_conf object
  * RET uint16_t	- keep_alive_time
  */
 uint16_t slurm_get_keep_alive_time(void)
 {
 	uint16_t keep_alive_time = NO_VAL16;
-	slurm_ctl_conf_t *conf;
+	slurm_conf_t *conf;
 
 	if (slurmdbd_conf) {
 	} else {
@@ -2555,13 +2330,13 @@ uint16_t slurm_get_keep_alive_time(void)
 
 
 /* slurm_get_kill_wait
- * returns kill_wait from slurmctld_conf object
+ * returns kill_wait from slurm_conf object
  * RET uint16_t	- kill_wait
  */
 uint16_t slurm_get_kill_wait(void)
 {
 	uint16_t kill_wait = 0;
-	slurm_ctl_conf_t *conf;
+	slurm_conf_t *conf;
 
 	if (slurmdbd_conf) {
 	} else {
@@ -2573,13 +2348,13 @@ uint16_t slurm_get_kill_wait(void)
 }
 
 /* slurm_get_launch_params
- * get launch_params from slurmctld_conf object
+ * get launch_params from slurm_conf object
  * RET char *   - launch_params, MUST be xfreed by caller
  */
 char *slurm_get_launch_params(void)
 {
 	char *launch_params = NULL;
-	slurm_ctl_conf_t *conf;
+	slurm_conf_t *conf;
 
 	if (slurmdbd_conf) {
 	} else {
@@ -2591,13 +2366,13 @@ char *slurm_get_launch_params(void)
 }
 
 /* slurm_get_launch_type
- * get launch_type from slurmctld_conf object
+ * get launch_type from slurm_conf object
  * RET char *   - launch_type, MUST be xfreed by caller
  */
 char *slurm_get_launch_type(void)
 {
 	char *launch_type = NULL;
-	slurm_ctl_conf_t *conf;
+	slurm_conf_t *conf;
 
 	if (slurmdbd_conf) {
 	} else {
@@ -2609,12 +2384,12 @@ char *slurm_get_launch_type(void)
 }
 
 /* slurm_set_launch_type
- * set launch_type in slurmctld_conf object
+ * set launch_type in slurm_conf object
  * RET 0 or error code
  */
 int slurm_set_launch_type(char *launch_type)
 {
-	slurm_ctl_conf_t *conf;
+	slurm_conf_t *conf;
 
 	if (slurmdbd_conf) {
 	} else {
@@ -2631,7 +2406,7 @@ int slurm_set_launch_type(char *launch_type)
 char *slurm_get_mcs_plugin(void)
 {
 	char *mcs_plugin = NULL;
-	slurm_ctl_conf_t *conf;
+	slurm_conf_t *conf;
 
 	if (slurmdbd_conf) {
 	} else {
@@ -2647,7 +2422,7 @@ char *slurm_get_mcs_plugin(void)
 char *slurm_get_mcs_plugin_params(void)
 {
 	char *mcs_plugin_params = NULL;
-	slurm_ctl_conf_t *conf;
+	slurm_conf_t *conf;
 
 	if (slurmdbd_conf) {
 	} else {
@@ -2659,13 +2434,13 @@ char *slurm_get_mcs_plugin_params(void)
 }
 
 /* slurm_get_preempt_type
- * get PreemptType from slurmctld_conf object
+ * get PreemptType from slurm_conf object
  * RET char *   - preempt type, MUST be xfreed by caller
  */
 char *slurm_get_preempt_type(void)
 {
 	char *preempt_type = NULL;
-	slurm_ctl_conf_t *conf;
+	slurm_conf_t *conf;
 
 	if (slurmdbd_conf) {
 	} else {
@@ -2677,13 +2452,13 @@ char *slurm_get_preempt_type(void)
 }
 
 /* slurm_get_proctrack_type
- * get ProctrackType from slurmctld_conf object
+ * get ProctrackType from slurm_conf object
  * RET char *   - proctrack type, MUST be xfreed by caller
  */
 char *slurm_get_proctrack_type(void)
 {
 	char *proctrack_type = NULL;
-	slurm_ctl_conf_t *conf;
+	slurm_conf_t *conf;
 
 	if (slurmdbd_conf) {
 	} else {
@@ -2695,13 +2470,13 @@ char *slurm_get_proctrack_type(void)
 }
 
 /* slurm_get_slurmd_port
- * returns slurmd port from slurmctld_conf object
+ * returns slurmd port from slurm_conf object
  * RET uint16_t	- slurmd port
  */
 uint16_t slurm_get_slurmd_port(void)
 {
 	uint16_t slurmd_port = 0;
-	slurm_ctl_conf_t *conf;
+	slurm_conf_t *conf;
 
 	if (slurmdbd_conf) {
 	} else {
@@ -2712,33 +2487,14 @@ uint16_t slurm_get_slurmd_port(void)
 	return slurmd_port;
 }
 
-/* slurm_get_slurm_user_id
- * returns slurm uid from slurmctld_conf object
- * RET uint32_t	- slurm user id
- */
-uint32_t slurm_get_slurm_user_id(void)
-{
-	uint32_t slurm_uid = 0;
-	slurm_ctl_conf_t *conf;
-
-	if (slurmdbd_conf) {
-		slurm_uid = slurmdbd_conf->slurm_user_id;
-	} else {
-		conf = slurm_conf_lock();
-		slurm_uid = conf->slurm_user_id;
-		slurm_conf_unlock();
-	}
-	return slurm_uid;
-}
-
 /* slurm_get_slurmd_user_id
- * returns slurmd uid from slurmctld_conf object
+ * returns slurmd uid from slurm_conf object
  * RET uint32_t	- slurmd user id
  */
 uint32_t slurm_get_slurmd_user_id(void)
 {
 	uint32_t slurmd_uid = 0;
-	slurm_ctl_conf_t *conf;
+	slurm_conf_t *conf;
 
 	if (slurmdbd_conf) {
 	} else {
@@ -2756,7 +2512,7 @@ uint32_t slurm_get_slurmd_user_id(void)
 char *slurm_get_slurmd_params(void)
 {
 	char *slurmd_params = NULL;
-	slurm_ctl_conf_t *conf;
+	slurm_conf_t *conf;
 
 	if (slurmdbd_conf) {
 	} else {
@@ -2774,7 +2530,7 @@ char *slurm_get_slurmd_params(void)
 char *slurm_get_slurmctld_params(void)
 {
 	char *slurmctld_params = NULL;
-	slurm_ctl_conf_t *conf;
+	slurm_conf_t *conf;
 
 	if (slurmdbd_conf) {
 	} else {
@@ -2790,7 +2546,7 @@ char *slurm_get_slurmctld_params(void)
 extern char *slurm_get_sched_params(void)
 {
 	char *params = 0;
-	slurm_ctl_conf_t *conf;
+	slurm_conf_t *conf;
 
  	if (slurmdbd_conf) {
 	} else {
@@ -2802,13 +2558,13 @@ extern char *slurm_get_sched_params(void)
 }
 
 /* slurm_get_sched_type
- * get sched type from slurmctld_conf object
+ * get sched type from slurm_conf object
  * RET char *   - sched type, MUST be xfreed by caller
  */
 char *slurm_get_sched_type(void)
 {
 	char *sched_type = NULL;
-	slurm_ctl_conf_t *conf;
+	slurm_conf_t *conf;
 
 	if (slurmdbd_conf) {
 	} else {
@@ -2820,13 +2576,13 @@ char *slurm_get_sched_type(void)
 }
 
 /* slurm_get_select_type
- * get select_type from slurmctld_conf object
+ * get select_type from slurm_conf object
  * RET char *   - select_type, MUST be xfreed by caller
  */
 char *slurm_get_select_type(void)
 {
 	char *select_type = NULL;
-	slurm_ctl_conf_t *conf;
+	slurm_conf_t *conf;
 
 	if (slurmdbd_conf) {
 	} else {
@@ -2838,13 +2594,13 @@ char *slurm_get_select_type(void)
 }
 
 /* slurm_get_select_type_param
- * get select_type_param from slurmctld_conf object
+ * get select_type_param from slurm_conf object
  * RET uint16_t   - select_type_param
  */
 uint16_t slurm_get_select_type_param(void)
 {
 	uint16_t select_type_param = 0;
-	slurm_ctl_conf_t *conf;
+	slurm_conf_t *conf;
 
 	if (slurmdbd_conf) {
 	} else {
@@ -2856,12 +2612,12 @@ uint16_t slurm_get_select_type_param(void)
 }
 
 /* slurm_set_select_type_param
- * set select_type_param for slurmctld_conf object
+ * set select_type_param for slurm_conf object
  * IN uint16_t   - select_type_param
  */
 void slurm_set_select_type_param(uint16_t select_type_param)
 {
-	slurm_ctl_conf_t *conf;
+	slurm_conf_t *conf;
 
 	if (slurmdbd_conf) {
 	} else {
@@ -2878,7 +2634,7 @@ bool is_cray_select_type(void)
 
 	if (slurmdbd_conf) {
 	} else {
-		slurm_ctl_conf_t *conf = slurm_conf_lock();
+		slurm_conf_t *conf = slurm_conf_lock();
 		result = !xstrcasecmp(conf->select_type, "select/cray_aries");
 		slurm_conf_unlock();
 	}
@@ -2886,13 +2642,13 @@ bool is_cray_select_type(void)
 }
 
 /* slurm_get_switch_type
- * get switch type from slurmctld_conf object
+ * get switch type from slurm_conf object
  * RET char *   - switch type, MUST be xfreed by caller
  */
 char *slurm_get_switch_type(void)
 {
 	char *switch_type = NULL;
-	slurm_ctl_conf_t *conf;
+	slurm_conf_t *conf;
 
 	conf = slurm_conf_lock();
 	switch_type = xstrdup(conf->switch_type);
@@ -2901,13 +2657,13 @@ char *slurm_get_switch_type(void)
 }
 
 /* slurm_get_wait_time
- * returns wait_time from slurmctld_conf object
+ * returns wait_time from slurm_conf object
  * RET uint16_t	- wait_time
  */
 uint16_t slurm_get_wait_time(void)
 {
 	uint16_t wait_time = 0;
-	slurm_ctl_conf_t *conf;
+	slurm_conf_t *conf;
 
 	if (slurmdbd_conf) {
 	} else {
@@ -2925,7 +2681,7 @@ uint16_t slurm_get_wait_time(void)
 char *slurm_get_srun_prolog(void)
 {
 	char *prolog = NULL;
-	slurm_ctl_conf_t *conf;
+	slurm_conf_t *conf;
 
 	if (slurmdbd_conf) {
 	} else {
@@ -2943,7 +2699,7 @@ char *slurm_get_srun_prolog(void)
 char *slurm_get_srun_epilog(void)
 {
 	char *epilog = NULL;
-	slurm_ctl_conf_t *conf;
+	slurm_conf_t *conf;
 
 	if (slurmdbd_conf) {
 	} else {
@@ -2959,7 +2715,7 @@ char *slurm_get_srun_epilog(void)
 char *slurm_get_task_epilog(void)
 {
 	char *task_epilog = NULL;
-	slurm_ctl_conf_t *conf;
+	slurm_conf_t *conf;
 
 	if (slurmdbd_conf) {
 	} else {
@@ -2975,7 +2731,7 @@ char *slurm_get_task_epilog(void)
 char *slurm_get_task_prolog(void)
 {
 	char *task_prolog = NULL;
-	slurm_ctl_conf_t *conf;
+	slurm_conf_t *conf;
 
 	if (slurmdbd_conf) {
 	} else {
@@ -2992,7 +2748,7 @@ uint16_t *
 slurm_get_srun_port_range(void)
 {
 	uint16_t *ports = NULL;
-	slurm_ctl_conf_t *conf;
+	slurm_conf_t *conf;
 
 	if (slurmdbd_conf) {
 	} else {
@@ -3008,7 +2764,7 @@ slurm_get_srun_port_range(void)
 char *slurm_get_task_plugin(void)
 {
 	char *task_plugin = NULL;
-	slurm_ctl_conf_t *conf;
+	slurm_conf_t *conf;
 
 	conf = slurm_conf_lock();
 	task_plugin = xstrdup(conf->task_plugin);
@@ -3020,7 +2776,7 @@ char *slurm_get_task_plugin(void)
 uint32_t slurm_get_task_plugin_param(void)
 {
 	uint32_t task_plugin_param = 0;
-	slurm_ctl_conf_t *conf;
+	slurm_conf_t *conf;
 
 	if (slurmdbd_conf) {
 	} else {
@@ -3035,7 +2791,7 @@ uint32_t slurm_get_task_plugin_param(void)
 uint16_t slurm_get_time_slice(void)
 {
 	uint16_t sched_time_slice = 0;
-	slurm_ctl_conf_t *conf;
+	slurm_conf_t *conf;
 
 	if (slurmdbd_conf) {
 	} else {
@@ -3051,7 +2807,7 @@ uint16_t slurm_get_time_slice(void)
 char *slurm_get_core_spec_plugin(void)
 {
 	char *core_spec_plugin = NULL;
-	slurm_ctl_conf_t *conf;
+	slurm_conf_t *conf;
 
 	conf = slurm_conf_lock();
 	core_spec_plugin = xstrdup(conf->core_spec_plugin);
@@ -3064,7 +2820,7 @@ char *slurm_get_core_spec_plugin(void)
 char *slurm_get_job_container_plugin(void)
 {
 	char *job_container_plugin = NULL;
-	slurm_ctl_conf_t *conf;
+	slurm_conf_t *conf;
 
 	conf = slurm_conf_lock();
 	job_container_plugin = xstrdup(conf->job_container_plugin);
@@ -3077,7 +2833,7 @@ char *slurm_get_job_container_plugin(void)
 char *slurm_get_slurmd_spooldir(char *node_name)
 {
 	char *slurmd_spooldir = NULL;
-	slurm_ctl_conf_t *conf;
+	slurm_conf_t *conf;
 
 	if (slurmdbd_conf) {
 	} else {
@@ -3097,7 +2853,7 @@ char *slurm_get_slurmd_spooldir(char *node_name)
 char *slurm_get_layouts(void)
 {
 	char* layouts = NULL;
-	slurm_ctl_conf_t *conf;
+	slurm_conf_t *conf;
 
 	if (slurmdbd_conf) {
 		layouts = xstrdup("");
@@ -3115,7 +2871,7 @@ int16_t
 slurm_get_srun_eio_timeout(void)
 {
 	int16_t eio_timeout = 0;
-	slurm_ctl_conf_t *conf;
+	slurm_conf_t *conf;
 
 	if (slurmdbd_conf) {
 	} else {
@@ -3250,23 +3006,23 @@ extern int slurm_open_controller_conn(slurm_addr_t *addr, bool *use_backup,
 
 		for (i = 0; i < proto_conf->control_cnt; i++) {
 			proto_conf->controller_addr[i].sin_port =
-					htons(slurmctld_conf.slurmctld_port +
-					(((time(NULL) + getpid()) %
-					slurmctld_conf.slurmctld_port_count)));
+				htons(slurm_conf.slurmctld_port +
+				(((time(NULL) + getpid()) %
+				 slurm_conf.slurmctld_port_count)));
 		}
 
 		if (proto_conf->vip_addr_set) {
 			proto_conf->vip_addr.sin_port =
-					htons(slurmctld_conf.slurmctld_port +
-					(((time(NULL) + getpid()) %
-					slurmctld_conf.slurmctld_port_count)));
+				htons(slurm_conf.slurmctld_port +
+				(((time(NULL) + getpid()) %
+				 slurm_conf.slurmctld_port_count)));
 		}
 	}
 
 #ifdef HAVE_NATIVE_CRAY
 	max_retry_period = 180;
 #else
-	max_retry_period = slurm_get_msg_timeout();
+	max_retry_period = slurm_conf.msg_timeout;
 #endif
 	for (retry = 0; retry < max_retry_period; retry++) {
 		if (retry)
@@ -3528,9 +3284,9 @@ int slurm_receive_msg(int fd, slurm_msg_t *msg, int timeout)
 
 	if (timeout <= 0)
 		/* convert secs to msec */
-		timeout  = slurm_get_msg_timeout() * MSEC_IN_SEC;
+		timeout = slurm_conf.msg_timeout * MSEC_IN_SEC;
 
-	else if (timeout > (slurm_get_msg_timeout() * MSEC_IN_SEC * 10)) {
+	else if (timeout > (slurm_conf.msg_timeout * MSEC_IN_SEC * 10)) {
 		/* consider 10x the timeout to be very long */
 		debug("%s: You are receiving a message with very long "
 		      "timeout of %d seconds", __func__,
@@ -3599,12 +3355,12 @@ List slurm_receive_msgs(int fd, int steps, int timeout)
 
 	if (timeout <= 0) {
 		/* convert secs to msec */
-		timeout  = slurm_get_msg_timeout() * 1000;
+		timeout = slurm_conf.msg_timeout * 1000;
 		orig_timeout = timeout;
 	}
 	if (steps) {
 		if (message_timeout < 0)
-			message_timeout = slurm_get_msg_timeout() * 1000;
+			message_timeout = slurm_conf.msg_timeout * 1000;
 		orig_timeout = (timeout -
 				(message_timeout*(steps-1)))/steps;
 		steps--;
@@ -3615,11 +3371,11 @@ List slurm_receive_msgs(int fd, int steps, int timeout)
 	/* we compare to the orig_timeout here because that is really
 	 *  what we are going to wait for each step
 	 */
-	if (orig_timeout >= (slurm_get_msg_timeout() * 10000)) {
+	if (orig_timeout >= (slurm_conf.msg_timeout * 10000)) {
 		debug("slurm_receive_msgs: "
 		      "You are sending a message with timeout's greater "
 		      "than %d seconds, your's is %d seconds",
-		      (slurm_get_msg_timeout() * 10),
+		      (slurm_conf.msg_timeout * 10),
 		      (timeout/1000));
 	} else if (orig_timeout < 1000) {
 		debug("slurm_receive_msgs: "
@@ -3819,15 +3575,15 @@ int slurm_receive_msg_and_forward(int fd, slurm_addr_t *orig_addr,
 
 	if (timeout <= 0) {
 		/* convert secs to msec */
-		timeout  = slurm_get_msg_timeout() * 1000;
+		timeout = slurm_conf.msg_timeout * 1000;
 	} else if (timeout < 1000) {
 		debug("%s: You are sending a message with a very short timeout of %d milliseconds",
 		      __func__, timeout);
-	} else if (timeout >= (slurm_get_msg_timeout() * 10000)) {
+	} else if (timeout >= (slurm_conf.msg_timeout * 10000)) {
 		debug("slurm_receive_msg_and_forward: "
 		      "You are sending a message with timeout's greater "
 		      "than %d seconds, your's is %d seconds",
-		      (slurm_get_msg_timeout() * 10),
+		      (slurm_conf.msg_timeout * 10),
 		      (timeout/1000));
 	}
 
@@ -4178,15 +3934,15 @@ int slurm_send_node_msg(int fd, slurm_msg_t * msg)
 size_t slurm_write_stream(int open_fd, char *buffer, size_t size)
 {
 	return slurm_send_timeout(open_fd, buffer, size,
-				  SLURM_PROTOCOL_NO_SEND_RECV_FLAGS,
-				  (slurm_get_msg_timeout() * 1000));
+	                          SLURM_PROTOCOL_NO_SEND_RECV_FLAGS,
+	                          (slurm_conf.msg_timeout * 1000));
 }
 size_t slurm_write_stream_timeout(int open_fd, char *buffer,
 				  size_t size, int timeout)
 {
 	return slurm_send_timeout(open_fd, buffer, size,
-				  SLURM_PROTOCOL_NO_SEND_RECV_FLAGS,
-				  timeout);
+	                          SLURM_PROTOCOL_NO_SEND_RECV_FLAGS,
+	                          timeout);
 }
 
 /* slurm_read_stream
@@ -4200,15 +3956,15 @@ size_t slurm_write_stream_timeout(int open_fd, char *buffer,
 size_t slurm_read_stream(int open_fd, char *buffer, size_t size)
 {
 	return slurm_recv_timeout(open_fd, buffer, size,
-				   SLURM_PROTOCOL_NO_SEND_RECV_FLAGS,
-				   (slurm_get_msg_timeout() * 1000));
+	                          SLURM_PROTOCOL_NO_SEND_RECV_FLAGS,
+	                          (slurm_conf.msg_timeout * 1000));
 }
 size_t slurm_read_stream_timeout(int open_fd, char *buffer,
 				 size_t size, int timeout)
 {
 	return slurm_recv_timeout(open_fd, buffer, size,
-				   SLURM_PROTOCOL_NO_SEND_RECV_FLAGS,
-				   timeout);
+	                          SLURM_PROTOCOL_NO_SEND_RECV_FLAGS,
+	                          timeout);
 }
 
 /**********************************************************************\
@@ -4548,7 +4304,7 @@ _send_and_recv_msgs(int fd, slurm_msg_t *req, int timeout)
 
 	if (!req->forward.timeout) {
 		if (!timeout)
-			timeout = slurm_get_msg_timeout() * 1000;
+			timeout = slurm_conf.msg_timeout * 1000;
 		req->forward.timeout = timeout;
 	}
 	if (slurm_send_node_msg(fd, req) >= 0) {
@@ -4560,7 +4316,7 @@ _send_and_recv_msgs(int fd, slurm_msg_t *req, int timeout)
 			 * to let the child timeout */
 			if (message_timeout < 0)
 				message_timeout =
-					slurm_get_msg_timeout() * 1000;
+					slurm_conf.msg_timeout * 1000;
 			steps = req->forward.cnt + 1;
 			if (!req->forward.tree_width)
 				req->forward.tree_width =
@@ -4597,7 +4353,7 @@ extern int slurm_send_recv_controller_msg(slurm_msg_t * request_msg,
 	int rc = 0;
 	time_t start_time = time(NULL);
 	int retry = 1;
-	slurm_ctl_conf_t *conf;
+	slurm_conf_t *conf;
 	bool have_backup;
 	uint16_t slurmctld_timeout;
 	slurm_addr_t ctrl_addr;
@@ -4937,7 +4693,7 @@ List slurm_send_addr_recv_msgs(slurm_msg_t *msg, char *name, int timeout)
 
 	slurm_mutex_lock(&conn_lock);
 	if (conn_timeout == NO_VAL16)
-		conn_timeout = MIN(slurm_get_msg_timeout(), 10);
+		conn_timeout = MIN(slurm_conf.msg_timeout, 10);
 	slurm_mutex_unlock(&conn_lock);
 
 	/* This connect retry logic permits Slurm hierarchical communications
@@ -5470,7 +5226,7 @@ static bool _is_port_ok(int s, uint16_t port, bool local)
 uint16_t slurm_get_prolog_timeout(void)
 {
 	uint16_t timeout = 0;
-	slurm_ctl_conf_t *conf;
+	slurm_conf_t *conf;
 
 	if (slurmdbd_conf) {
 	} else {

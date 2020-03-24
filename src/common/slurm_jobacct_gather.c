@@ -565,8 +565,8 @@ extern int jobacct_gather_init(void)
 	xfree(type);
 	xfree(plugin_type);
 
-	type = slurm_get_accounting_storage_type();
-	if (!xstrcasecmp(type, ACCOUNTING_STORAGE_TYPE_NONE)) {
+	if (!xstrcasecmp(slurm_conf.accounting_storage_type,
+	                 ACCOUNTING_STORAGE_TYPE_NONE)) {
 		error("WARNING: Even though we are collecting accounting "
 		      "information you have asked for it not to be stored "
 		      "(%s) if this is not what you have in mind you will "
@@ -575,7 +575,6 @@ extern int jobacct_gather_init(void)
 
 done:
 	slurm_mutex_unlock(&g_context_lock);
-	xfree(type);
 
 	return(retval);
 }
@@ -1148,10 +1147,11 @@ extern int jobacctinfo_unpack(jobacctinfo_t **jobacct,
 
 		safe_unpack32_array(&(*jobacct)->tres_ids,
 				    &(*jobacct)->tres_count, buffer);
-		slurm_unpack_list(&(*jobacct)->tres_list,
-				  slurmdb_unpack_tres_rec,
-				  slurmdb_destroy_tres_rec,
-				  buffer, rpc_version);
+		if (slurm_unpack_list(&(*jobacct)->tres_list,
+				      slurmdb_unpack_tres_rec,
+				      slurmdb_destroy_tres_rec,
+				      buffer, rpc_version) != SLURM_SUCCESS)
+			goto unpack_error;
 		safe_unpack64_array(&(*jobacct)->tres_usage_in_max,
 				    &uint32_tmp, buffer);
 		safe_unpack64_array(&(*jobacct)->tres_usage_in_max_nodeid,

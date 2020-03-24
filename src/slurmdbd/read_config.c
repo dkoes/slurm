@@ -84,6 +84,8 @@ extern void free_slurmdbd_conf(void)
 
 static void _clear_slurmdbd_conf(void)
 {
+	free_slurm_conf(&slurm_conf, 0);
+
 	if (slurmdbd_conf) {
 		xfree(slurmdbd_conf->archive_dir);
 		xfree(slurmdbd_conf->archive_script);
@@ -94,14 +96,12 @@ static void _clear_slurmdbd_conf(void)
 		xfree(slurmdbd_conf->dbd_backup);
 		xfree(slurmdbd_conf->dbd_host);
 		slurmdbd_conf->dbd_port = 0;
-		slurmdbd_conf->debug_flags = 0;
 		slurmdbd_conf->debug_level = LOG_LEVEL_INFO;
 		xfree(slurmdbd_conf->default_qos);
 		xfree(slurmdbd_conf->log_file);
 		slurmdbd_conf->syslog_debug = LOG_LEVEL_END;
 		xfree(slurmdbd_conf->parameters);
 		xfree(slurmdbd_conf->pid_file);
-		xfree(slurmdbd_conf->plugindir);
 		slurmdbd_conf->private_data = 0;
 		slurmdbd_conf->purge_event = 0;
 		slurmdbd_conf->purge_job = 0;
@@ -110,14 +110,10 @@ static void _clear_slurmdbd_conf(void)
 		slurmdbd_conf->purge_suspend = 0;
 		slurmdbd_conf->purge_txn = 0;
 		slurmdbd_conf->purge_usage = 0;
-		slurmdbd_conf->slurm_user_id = NO_VAL;
-		xfree(slurmdbd_conf->slurm_user_name);
 		xfree(slurmdbd_conf->storage_backup_host);
 		xfree(slurmdbd_conf->storage_host);
 		xfree(slurmdbd_conf->storage_loc);
 		xfree(slurmdbd_conf->storage_pass);
-		slurmdbd_conf->storage_port = 0;
-		xfree(slurmdbd_conf->storage_type);
 		xfree(slurmdbd_conf->storage_user);
 		slurmdbd_conf->track_wckey = 0;
 		slurmdbd_conf->track_ctld = 0;
@@ -232,8 +228,7 @@ extern int read_slurmdbd_conf(void)
 		s_p_get_boolean(&a_suspend, "ArchiveSuspend", tbl);
 		s_p_get_boolean(&a_txn, "ArchiveTXN", tbl);
 		s_p_get_boolean(&a_usage, "ArchiveUsage", tbl);
-		s_p_get_string(&slurmdbd_conf->auth_alt_types, "AuthAltTypes",
-			       tbl);
+		s_p_get_string(&slurm_conf.authalttypes, "AuthAltTypes", tbl);
 		s_p_get_string(&slurmdbd_conf->auth_info, "AuthInfo", tbl);
 		s_p_get_string(&slurmdbd_conf->auth_type, "AuthType", tbl);
 		s_p_get_uint16(&slurmdbd_conf->commit_delay,
@@ -245,13 +240,12 @@ extern int read_slurmdbd_conf(void)
 		s_p_get_uint16(&slurmdbd_conf->dbd_port, "DbdPort", tbl);
 
 		if (s_p_get_string(&temp_str, "DebugFlags", tbl)) {
-			if (debug_str2flags(temp_str,
-					    &slurmdbd_conf->debug_flags)
+			if (debug_str2flags(temp_str, &slurm_conf.debug_flags)
 			    != SLURM_SUCCESS)
 				fatal("DebugFlags invalid: %s", temp_str);
 			xfree(temp_str);
 		} else	/* Default: no DebugFlags */
-			slurmdbd_conf->debug_flags = 0;
+			slurm_conf.debug_flags = 0;
 
 		if (s_p_get_string(&temp_str, "DebugLevel", tbl)) {
 			slurmdbd_conf->debug_level = log_string2num(temp_str);
@@ -305,13 +299,11 @@ extern int read_slurmdbd_conf(void)
 			slurmdbd_conf->max_time_range = INFINITE;
 		}
 
-		if (!s_p_get_uint16(&slurmdbd_conf->msg_timeout,
-				    "MessageTimeout", tbl))
-			slurmdbd_conf->msg_timeout = DEFAULT_MSG_TIMEOUT;
-		else if (slurmdbd_conf->msg_timeout > 100) {
-			info("WARNING: MessageTimeout is too high for "
-			     "effective fault-tolerance");
-		}
+		if (!s_p_get_uint16(&slurm_conf.msg_timeout, "MessageTimeout",
+		                    tbl))
+			slurm_conf.msg_timeout = DEFAULT_MSG_TIMEOUT;
+		else if (slurm_conf.msg_timeout > 100)
+			info("WARNING: MessageTimeout is too high for effective fault-tolerance");
 
 		s_p_get_string(&slurmdbd_conf->parameters, "Parameters", tbl);
 		if (slurmdbd_conf->parameters) {
@@ -322,7 +314,7 @@ extern int read_slurmdbd_conf(void)
 		}
 
 		s_p_get_string(&slurmdbd_conf->pid_file, "PidFile", tbl);
-		s_p_get_string(&slurmdbd_conf->plugindir, "PluginDir", tbl);
+		s_p_get_string(&slurm_conf.plugindir, "PluginDir", tbl);
 
 		slurmdbd_conf->private_data = 0; /* default visible to all */
 		if (s_p_get_string(&temp_str, "PrivateData", tbl)) {
@@ -471,8 +463,7 @@ extern int read_slurmdbd_conf(void)
 					|= SLURMDB_PURGE_MONTHS;
 		}
 
-		s_p_get_string(&slurmdbd_conf->slurm_user_name,
-			       "SlurmUser", tbl);
+		s_p_get_string(&slurm_conf.slurm_user_name, "SlurmUser", tbl);
 
 		if (s_p_get_uint32(&slurmdbd_conf->purge_step,
 				   "StepPurge", tbl)) {
@@ -491,16 +482,15 @@ extern int read_slurmdbd_conf(void)
 			       "StorageLoc", tbl);
 		s_p_get_string(&slurmdbd_conf->storage_pass,
 			       "StoragePass", tbl);
-		s_p_get_uint16(&slurmdbd_conf->storage_port,
-			       "StoragePort", tbl);
-		s_p_get_string(&slurmdbd_conf->storage_type,
-			       "StorageType", tbl);
+		s_p_get_uint32(&slurm_conf.accounting_storage_port,
+		               "StoragePort", tbl);
+		s_p_get_string(&slurm_conf.accounting_storage_type,
+		               "StorageType", tbl);
 		s_p_get_string(&slurmdbd_conf->storage_user,
 			       "StorageUser", tbl);
 
-		if (!s_p_get_uint16(&slurmdbd_conf->tcp_timeout,
-				    "TCPTimeout", tbl))
-			slurmdbd_conf->tcp_timeout = DEFAULT_TCP_TIMEOUT;
+		if (!s_p_get_uint16(&slurm_conf.tcp_timeout, "TCPTimeout", tbl))
+			slurm_conf.tcp_timeout = DEFAULT_TCP_TIMEOUT;
 
 		if (!s_p_get_boolean((bool *)&slurmdbd_conf->track_wckey,
 				     "TrackWCKey", tbl))
@@ -542,27 +532,24 @@ extern int read_slurmdbd_conf(void)
 		slurmdbd_conf->pid_file = xstrdup(DEFAULT_SLURMDBD_PIDFILE);
 	if (slurmdbd_conf->dbd_port == 0)
 		slurmdbd_conf->dbd_port = SLURMDBD_PORT;
-	if (slurmdbd_conf->plugindir == NULL)
-		slurmdbd_conf->plugindir = xstrdup(default_plugin_path);
-	if (slurmdbd_conf->slurm_user_name) {
-		uid_t pw_uid;
-		if (uid_from_string (slurmdbd_conf->slurm_user_name,
-				     &pw_uid) < 0)
+	if (!slurm_conf.plugindir)
+		slurm_conf.plugindir = xstrdup(default_plugin_path);
+	if (slurm_conf.slurm_user_name) {
+		if (uid_from_string(slurm_conf.slurm_user_name,
+		                    &slurm_conf.slurm_user_id) < 0)
 			fatal("Invalid user for SlurmUser %s, ignored",
-			      slurmdbd_conf->slurm_user_name);
-		else
-			slurmdbd_conf->slurm_user_id = pw_uid;
+			      slurm_conf.slurm_user_name);
 	} else {
-		slurmdbd_conf->slurm_user_name = xstrdup("root");
-		slurmdbd_conf->slurm_user_id = 0;
+		slurm_conf.slurm_user_name = xstrdup("root");
+		slurm_conf.slurm_user_id = 0;
 	}
 
-	if (slurmdbd_conf->storage_type == NULL)
+	if (!slurm_conf.accounting_storage_type)
 		fatal("StorageType must be specified");
-	if (!xstrcmp(slurmdbd_conf->storage_type,
-		     "accounting_storage/slurmdbd")) {
+	if (!xstrcmp(slurm_conf.accounting_storage_type,
+	             "accounting_storage/slurmdbd")) {
 		fatal("StorageType=%s is invalid in slurmdbd.conf",
-		      slurmdbd_conf->storage_type);
+		      slurm_conf.accounting_storage_type);
 	}
 
 	if (!slurmdbd_conf->storage_host)
@@ -571,16 +558,18 @@ extern int read_slurmdbd_conf(void)
 	if (!slurmdbd_conf->storage_user)
 		slurmdbd_conf->storage_user = xstrdup(getlogin());
 
-	if (!xstrcmp(slurmdbd_conf->storage_type,
-		     "accounting_storage/mysql")) {
-		if (!slurmdbd_conf->storage_port)
-			slurmdbd_conf->storage_port = DEFAULT_MYSQL_PORT;
+	if (!xstrcmp(slurm_conf.accounting_storage_type,
+	             "accounting_storage/mysql")) {
+		if (!slurm_conf.accounting_storage_port)
+			slurm_conf.accounting_storage_port =
+				DEFAULT_MYSQL_PORT;
 		if (!slurmdbd_conf->storage_loc)
 			slurmdbd_conf->storage_loc =
 				xstrdup(DEFAULT_ACCOUNTING_DB);
 	} else {
-		if (!slurmdbd_conf->storage_port)
-			slurmdbd_conf->storage_port = DEFAULT_STORAGE_PORT;
+		if (!slurm_conf.accounting_storage_port)
+			slurm_conf.accounting_storage_port =
+				DEFAULT_STORAGE_PORT;
 		if (!slurmdbd_conf->storage_loc)
 			slurmdbd_conf->storage_loc =
 				xstrdup(DEFAULT_STORAGE_LOC);
@@ -640,7 +629,7 @@ extern void log_config(void)
 
 	debug2("ArchiveDir        = %s", slurmdbd_conf->archive_dir);
 	debug2("ArchiveScript     = %s", slurmdbd_conf->archive_script);
-	debug2("AuthAltTypes      = %s", slurmdbd_conf->auth_alt_types);
+	debug2("AuthAltTypes      = %s", slurm_conf.authalttypes);
 	debug2("AuthInfo          = %s", slurmdbd_conf->auth_info);
 	debug2("AuthType          = %s", slurmdbd_conf->auth_type);
 	debug2("CommitDelay       = %u", slurmdbd_conf->commit_delay);
@@ -648,7 +637,7 @@ extern void log_config(void)
 	debug2("DbdBackupHost     = %s", slurmdbd_conf->dbd_backup);
 	debug2("DbdHost           = %s", slurmdbd_conf->dbd_host);
 	debug2("DbdPort           = %u", slurmdbd_conf->dbd_port);
-	tmp_ptr = debug_flags2str(slurmdbd_conf->debug_flags);
+	tmp_ptr = debug_flags2str(slurm_conf.debug_flags);
 	debug2("DebugFlags        = %s", tmp_ptr);
 	xfree(tmp_ptr);
 	debug2("DebugLevel        = %u", slurmdbd_conf->debug_level);
@@ -656,10 +645,10 @@ extern void log_config(void)
 	debug2("DefaultQOS        = %s", slurmdbd_conf->default_qos);
 
 	debug2("LogFile           = %s", slurmdbd_conf->log_file);
-	debug2("MessageTimeout    = %u", slurmdbd_conf->msg_timeout);
+	debug2("MessageTimeout    = %u", slurm_conf.msg_timeout);
 	debug2("Parameters        = %s", slurmdbd_conf->parameters);
 	debug2("PidFile           = %s", slurmdbd_conf->pid_file);
-	debug2("PluginDir         = %s", slurmdbd_conf->plugindir);
+	debug2("PluginDir         = %s", slurm_conf.plugindir);
 
 	private_data_string(slurmdbd_conf->private_data,
 			    tmp_str, sizeof(tmp_str));
@@ -694,17 +683,17 @@ extern void log_config(void)
 	debug2("PurgeUsageAfter = %s", tmp_str);
 
 	debug2("SlurmUser         = %s(%u)",
-	       slurmdbd_conf->slurm_user_name, slurmdbd_conf->slurm_user_id);
+	       slurm_conf.slurm_user_name, slurm_conf.slurm_user_id);
 
 	debug2("StorageBackupHost = %s", slurmdbd_conf->storage_backup_host);
 	debug2("StorageHost       = %s", slurmdbd_conf->storage_host);
 	debug2("StorageLoc        = %s", slurmdbd_conf->storage_loc);
 	/* debug2("StoragePass       = %s", slurmdbd_conf->storage_pass); */
-	debug2("StoragePort       = %u", slurmdbd_conf->storage_port);
-	debug2("StorageType       = %s", slurmdbd_conf->storage_type);
+	debug2("StoragePort       = %u", slurm_conf.accounting_storage_port);
+	debug2("StorageType       = %s", slurm_conf.accounting_storage_type);
 	debug2("StorageUser       = %s", slurmdbd_conf->storage_user);
 
-	debug2("TCPTimeout        = %u", slurmdbd_conf->tcp_timeout);
+	debug2("TCPTimeout        = %u", slurm_conf.tcp_timeout);
 
 	debug2("TrackWCKey        = %u", slurmdbd_conf->track_wckey);
 	debug2("TrackSlurmctldDown= %u", slurmdbd_conf->track_ctld);
@@ -801,7 +790,7 @@ extern List dump_config(void)
 
 	key_pair = xmalloc(sizeof(config_key_pair_t));
 	key_pair->name = xstrdup("AuthAltTypes");
-	key_pair->value = xstrdup(slurmdbd_conf->auth_alt_types);
+	key_pair->value = xstrdup(slurm_conf.authalttypes);
 	list_append(my_list, key_pair);
 
 	key_pair = xmalloc(sizeof(config_key_pair_t));
@@ -847,7 +836,7 @@ extern List dump_config(void)
 
 	key_pair = xmalloc(sizeof(config_key_pair_t));
 	key_pair->name = xstrdup("DebugFlags");
-	key_pair->value = debug_flags2str(slurmdbd_conf->debug_flags);
+	key_pair->value = debug_flags2str(slurm_conf.debug_flags);
 	list_append(my_list, key_pair);
 
 	key_pair = xmalloc(sizeof(config_key_pair_t));
@@ -879,7 +868,7 @@ extern List dump_config(void)
 
 	key_pair = xmalloc(sizeof(config_key_pair_t));
 	key_pair->name = xstrdup("MessageTimeout");
-	key_pair->value = xstrdup_printf("%u secs", slurmdbd_conf->msg_timeout);
+	key_pair->value = xstrdup_printf("%u secs", slurm_conf.msg_timeout);
 	list_append(my_list, key_pair);
 
 	key_pair = xmalloc(sizeof(config_key_pair_t));
@@ -894,7 +883,7 @@ extern List dump_config(void)
 
 	key_pair = xmalloc(sizeof(config_key_pair_t));
 	key_pair->name = xstrdup("PluginDir");
-	key_pair->value = xstrdup(slurmdbd_conf->plugindir);
+	key_pair->value = xstrdup(slurm_conf.plugindir);
 	list_append(my_list, key_pair);
 
 	key_pair = xmalloc(sizeof(config_key_pair_t));
@@ -987,8 +976,8 @@ extern List dump_config(void)
 	key_pair = xmalloc(sizeof(config_key_pair_t));
 	key_pair->name = xstrdup("SlurmUser");
 	key_pair->value = xstrdup_printf("%s(%u)",
-					 slurmdbd_conf->slurm_user_name,
-					 slurmdbd_conf->slurm_user_id);
+	                                 slurm_conf.slurm_user_name,
+	                                 slurm_conf.slurm_user_id);
 	list_append(my_list, key_pair);
 
 	key_pair = xmalloc(sizeof(config_key_pair_t));
@@ -1010,12 +999,13 @@ extern List dump_config(void)
 
 	key_pair = xmalloc(sizeof(config_key_pair_t));
 	key_pair->name = xstrdup("StoragePort");
-	key_pair->value = xstrdup_printf("%u", slurmdbd_conf->storage_port);
+	key_pair->value = xstrdup_printf("%u",
+	                                 slurm_conf.accounting_storage_port);
 	list_append(my_list, key_pair);
 
 	key_pair = xmalloc(sizeof(config_key_pair_t));
 	key_pair->name = xstrdup("StorageType");
-	key_pair->value = xstrdup(slurmdbd_conf->storage_type);
+	key_pair->value = xstrdup(slurm_conf.accounting_storage_type);
 	list_append(my_list, key_pair);
 
 	key_pair = xmalloc(sizeof(config_key_pair_t));
@@ -1025,7 +1015,7 @@ extern List dump_config(void)
 
 	key_pair = xmalloc(sizeof(config_key_pair_t));
 	key_pair->name = xstrdup("TCPTimeout");
-	key_pair->value = xstrdup_printf("%u secs", slurmdbd_conf->tcp_timeout);
+	key_pair->value = xstrdup_printf("%u secs", slurm_conf.tcp_timeout);
 	list_append(my_list, key_pair);
 
 	key_pair = xmalloc(sizeof(config_key_pair_t));

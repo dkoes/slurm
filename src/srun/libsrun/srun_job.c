@@ -1221,8 +1221,7 @@ extern void create_srun_job(void **p_job, bool *got_alloc,
 		/* Combined job allocation and job step launch */
 #if defined HAVE_FRONT_END
 		uid_t my_uid = getuid();
-		if ((my_uid != 0) &&
-		    (my_uid != slurm_get_slurm_user_id())) {
+		if ((my_uid != 0) && (my_uid != slurm_conf.slurm_user_id)) {
 			error("srun task launch not supported on this system");
 			exit(error_exit);
 		}
@@ -2241,7 +2240,7 @@ static void _srun_cli_filter_post_submit(uint32_t jobid, uint32_t stepid)
 		components = list_count(opt_list);
 
 	for (idx = 0; idx < components; idx++)
-		cli_filter_plugin_post_submit(idx, jobid, stepid);
+		cli_filter_g_post_submit(idx, jobid, stepid);
 
 	post_submit_ran = true;
 }

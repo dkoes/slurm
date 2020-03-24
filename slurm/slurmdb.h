@@ -243,6 +243,9 @@ enum cluster_fed_states {
 #define CLUSTER_FLAG_CRAY   0x00000500 /* This cluster is a cray.
 					  Combo of CRAY_A | CRAY_N */
 
+
+/* Assoc flags */
+#define ASSOC_FLAG_DELETED  0x0001
 /********************************************/
 
 /* Association conditions used for queries of the database */
@@ -461,7 +464,7 @@ typedef struct slurmdb_assoc_rec {
 
 	uint32_t def_qos_id;       /* Which QOS id is this
 				    * associations default */
-
+	uint16_t flags;            /* various flags see ASSOC_FLAG_* */
 	uint32_t grp_jobs;	   /* max number of jobs the
 				    * underlying group of associations can run
 				    * at one time */
