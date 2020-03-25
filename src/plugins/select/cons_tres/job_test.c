@@ -574,6 +574,7 @@ static int _eval_nodes(job_record_t *job_ptr, gres_mc_data_t *mc_ptr,
 	}
 
 	for (i = 0; i < select_node_cnt; i++) {		/* For each node */
+
 		if ((consec_index + 1) >= consec_size) {
 			consec_size *= 2;
 			xrealloc(consec_cpus,  sizeof(int) * consec_size);
@@ -598,6 +599,7 @@ static int _eval_nodes(job_record_t *job_ptr, gres_mc_data_t *mc_ptr,
 			node_ptr = node_record_table_ptr + i;
 		} else {
 			node_ptr = node_record_table_ptr + i;
+
 			_select_cores(job_ptr, mc_ptr, enforce_binding, i,
 				      &avail_cpus, max_nodes, min_rem_nodes,
 				      avail_core, avail_res_array, first_pass);
@@ -644,6 +646,7 @@ static int _eval_nodes(job_record_t *job_ptr, gres_mc_data_t *mc_ptr,
 			bit_clear(node_map, i);
 			consec_cpus[consec_index] += avail_cpus;
 			consec_nodes[consec_index]++;
+
 			if (gres_per_job) {
 				gres_plugin_job_sched_consec(
 					&consec_gres[consec_index],
@@ -651,6 +654,7 @@ static int _eval_nodes(job_record_t *job_ptr, gres_mc_data_t *mc_ptr,
 					avail_res_array[i]->sock_gres_list);
 			}
 			consec_weight[consec_index] = node_ptr->sched_weight;
+
 		} else if (consec_nodes[consec_index] == 0) {
 			/* Only required nodes, re-use consec record */
 			consec_req[consec_index] = -1;
@@ -713,6 +717,7 @@ static int _eval_nodes(job_record_t *job_ptr, gres_mc_data_t *mc_ptr,
 	while (consec_index && (max_nodes > 0)) {
 		best_fit_cpus = best_fit_nodes = best_fit_sufficient = 0;
 		best_fit_req = -1;	/* first required node, -1 if none */
+                
 		for (i = 0; i < consec_index; i++) {
 			if (consec_nodes[i] == 0)
 				continue;	/* no usable nodes here */
@@ -3399,9 +3404,12 @@ extern avail_res_t *can_job_run_on_node(job_record_t *job_ptr,
 			return NULL;
 		}
 		/* Favor nodes with more co-located GPUs */
+                /* dkoes - no, we want to avoid round robin scheduling
 		node_ptr->sched_weight =
 			(node_ptr->sched_weight & 0xffffffffffffff00) |
 			(0xff - near_gpu_cnt);
+                        */
+
 	}
 
 	for (i = 0; i < avail_res->sock_cnt; i++)
