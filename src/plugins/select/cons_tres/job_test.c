@@ -3398,9 +3398,11 @@ extern avail_res_t *can_job_run_on_node(job_record_t *job_ptr,
 			return NULL;
 		}
 		/* Favor nodes with more co-located GPUs */
+                /* dkoes - no, we don't want to round robin schedule
 		node_ptr->sched_weight =
 			(node_ptr->sched_weight & 0xffffffffffffff00) |
 			(0xff - near_gpu_cnt);
+                */
 	}
 
 	for (i = 0; i < avail_res->sock_cnt; i++)
