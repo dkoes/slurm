@@ -328,7 +328,7 @@ extern int load_all_node_state ( bool state_only )
 
 	if (!protocol_version || (protocol_version == NO_VAL16)) {
 		if (!ignore_state_errors)
-			fatal("Can not recover node state, data version incompatible, start with '-i' to ignore this");
+			fatal("Can not recover node state, data version incompatible, start with '-i' to ignore this. Warning: using -i will lose the data that can't be recovered.");
 		error("*****************************************************");
 		error("Can not recover node state, data version incompatible");
 		error("*****************************************************");
@@ -677,7 +677,7 @@ fini:	info("Recovered state of %d nodes", node_cnt);
 
 unpack_error:
 	if (!ignore_state_errors)
-		fatal("Incomplete node data checkpoint file, start with '-i' to ignore this");
+		fatal("Incomplete node data checkpoint file, start with '-i' to ignore this. Warning: using -i will lose the data that can't be recovered.");
 	error("Incomplete node data checkpoint file");
 	error_code = EFAULT;
 	xfree(features);
@@ -1113,6 +1113,12 @@ static bool _valid_features_act(char *features_act, char *features)
 	return valid_subset;
 }
 
+static void _undo_reboot_asap(node_record_t *node_ptr)
+{
+	node_ptr->node_state &= (~NODE_STATE_DRAIN);
+	xfree(node_ptr->reason);
+}
+
 /*
  * update_node - update the configuration data for one or more nodes
  * IN update_node_msg - update node request
@@ -1543,6 +1549,9 @@ int update_node ( update_node_msg_t * update_node_msg )
 					node_ptr->node_state &=
 						(~NODE_STATE_REBOOT);
 					state_val = base_state;
+					if (!xstrcmp(node_ptr->reason,
+					             "Reboot ASAP"))
+						_undo_reboot_asap(node_ptr);
 				} else {
 					info("REBOOT on node %s already in progress -- unable to cancel",
 					     this_node_name);

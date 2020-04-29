@@ -20,6 +20,10 @@ documents those changes that are of interest to users and administrators.
  -- Fix regression in 20.02.0 that broke --depend=expand.
  -- Reset begin time on job release if it's not in the future.
  -- Fix for recovering burst buffers when using high-availability.
+ -- Fix invalid read due to freeing an incorrectly allocated env array.
+ -- Update slurmctld -i message to warn about losing data.
+ -- Fix scontrol cancel_reboot so it clears the DRAIN flag and node reason for a
+    pending ASAP reboot.
 
 * Changes in Slurm 20.02.0
 ==========================
@@ -156,6 +160,9 @@ documents those changes that are of interest to users and administrators.
  -- Add gpu/rsmi plugin to support AMD GPUs
  -- Make it so you can "stack" the energy plugins
  -- Add energy accounting plugin for AMD GPU
+
+* Changes in Slurm 19.05.7
+==========================
 
 * Changes in Slurm 19.05.6
 ==========================
